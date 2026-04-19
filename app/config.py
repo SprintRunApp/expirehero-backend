@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from typing import ClassVar
-
+from pydantic import Field
 
 class Settings(BaseSettings):
     app_name: str = "Expire Hero API"
@@ -24,16 +24,17 @@ class Settings(BaseSettings):
     FREE_REMINDER_LIMIT: ClassVar[int] = 5
     PRO_REMINDER_LIMIT: ClassVar[int | None] = None
 
-    database_url: str
+
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
-        extra="ignore"
+        extra="ignore",
+        populate_by_name=True   # 🔥 ważne dla aliasów
     )
 
-    SENDGRID_API_KEY: str
-    SENDGRID_FROM_EMAIL: str
+    SENDGRID_API_KEY: str = Field(..., alias="SENDGRID_API_KEY")
+    SENDGRID_FROM_EMAIL: str = Field(..., alias="SENDGRID_FROM_EMAIL")
 
     @property
     def cors_origin_list(self) -> list[str]:
