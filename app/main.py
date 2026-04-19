@@ -56,4 +56,8 @@ app.include_router(reminder_jobs.router, prefix="/jobs", tags=["jobs"])
 def root():
     return {"message": "ExpireHero API is running 🚀"}
 
+@app.get("/ping")
+def ping():
+    return {"ping": "ok"}
+
 
