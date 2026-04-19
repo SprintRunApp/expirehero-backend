@@ -3,16 +3,16 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 from .config import settings
 import os
 
-# 🔥 najpierw próbujemy Railway, potem lokalnie
-DATABASE_URL = os.getenv("DATABASE_URL") or settings.database_url
+DATABASE_URL = settings.database_url or os.getenv("DATABASE_URL")
 
-# 🔥 FIX dla Railway (postgres:// → postgresql+psycopg2://)
+# 🔥 KLUCZOWY FIX
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace(
         "postgres://",
-        "postgresql+psycopg2://",
-        1  # tylko pierwsze wystąpienie (bezpieczniej)
+        "postgresql+psycopg2://"
     )
+
+print("🔥 FINAL DATABASE_URL:", DATABASE_URL)
 
 engine = create_engine(
     DATABASE_URL,
