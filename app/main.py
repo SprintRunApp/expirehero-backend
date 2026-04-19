@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from .config import settings
-from .db import Base, engine
-from .routes import auth_routes, items, reminders
+
+from app.config import settings
+from app.db import Base, engine
+from app.routes import auth_routes, items, reminders
 from app.routes import teams
 from app.routes import settings as settings_router
 from app.api import reminder_jobs
