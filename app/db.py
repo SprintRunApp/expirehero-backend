@@ -8,7 +8,7 @@ DATABASE_URL = settings.database_url or os.getenv("DATABASE_URL")
 # 🔥 KLUCZOWY FIX
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace(
-        "postgres://",
+        "postgresql://",
         "postgresql+psycopg2://"
     )
 

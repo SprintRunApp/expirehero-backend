@@ -24,7 +24,7 @@ from app.api import reminder_jobs
 
 app = FastAPI(
     title=settings.app_name,
-    debug=settings.debug
+    debug=False   # 🔥 hardcode
 )
 
 app.add_middleware(
