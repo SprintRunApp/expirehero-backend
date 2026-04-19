@@ -51,4 +51,8 @@ app.include_router(teams.router, prefix="/api/teams", tags=["Teams"])
 app.include_router(settings_router.router, prefix="/api/settings", tags=["Settings"])
 app.include_router(reminder_jobs.router, prefix="/jobs", tags=["jobs"])
 
+@app.get("/")
+def root():
+    return {"message": "ExpireHero API is running 🚀"}
+
 
