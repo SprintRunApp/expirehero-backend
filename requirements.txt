@@ -12,4 +12,4 @@ redis==6.4.0
 rq
 redis
 sendgrid
-pip freeze > requirements.txt
+email-validator
