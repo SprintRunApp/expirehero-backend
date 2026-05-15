@@ -1,0 +1,217 @@
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../lib/api";
+import { auth } from "../lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+
+export default function ExpireHeroLandingPage() {
+  const navigate = useNavigate();
+
+  const [user,setUser] = useState(null);
+  const [loading,setLoading] = useState(true);
+
+  useEffect(()=>{
+    return onAuthStateChanged(auth,(u)=>{
+      setUser(u);
+      setLoading(false);
+    })
+  },[]);
+
+  const startFree = () => {
+    if(user){
+      navigate("/");
+    } else {
+      navigate("/login");
+    }
+  };
+
+  const upgrade = async () => {
+    if(!user){
+      navigate("/login");
+      return;
+    }
+
+    const res = await api.post("/payments/create-checkout-session");
+    window.location.href = res.data.checkout_url;
+  };
+
+  if(loading) return <div className="p-10 text-white">Loading...</div>;
+
+  const features=[
+    {title:"Never miss an expiration",text:"Track inspections, insurance, licenses, certifications and more.",icon:"⏰"},
+    {title:"Simple dashboard",text:"Green, yellow and red status cards show what needs attention.",icon:"📊"},
+    {title:"Automatic reminders",text:"Email reminders keep your business protected from missed deadlines.",icon:"📩"},
+    {title:"Built for small business",text:"Perfect for workshops, fleets, landlords and offices.",icon:"🏢"}
+  ];
+
+  const pricing=[
+    {name:"Free",price:"€0",features:["5 reminders","Dashboard","Email reminders"],cta:startFree,primary:false},
+    {name:"Pro",price:"€9",features:["Unlimited reminders","Attachments","Multi user","Reports"],cta:upgrade,primary:true}
+  ];
+
+  return (
+
+<div className="min-h-screen bg-slate-950 text-white">
+
+<header className="border-b border-white/10">
+<div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+
+<div className="flex items-center gap-3">
+<div className="h-10 w-10 flex items-center justify-center rounded-xl bg-emerald-400/20">⏳</div>
+<div className="font-semibold">Expire Hero</div>
+</div>
+
+<div className="flex gap-3">
+
+{!user && (
+<button
+onClick={()=>navigate("/login")}
+className="border border-white/10 px-4 py-2 rounded-xl">
+Login
+</button>
+)}
+
+<button
+onClick={startFree}
+className="bg-emerald-400 text-slate-950 px-4 py-2 rounded-xl font-semibold">
+Start free
+</button>
+
+</div>
+
+</div>
+</header>
+
+
+<main>
+
+<section className="max-w-7xl mx-auto px-6 py-24 grid lg:grid-cols-2 gap-12">
+
+<div>
+
+<h1 className="text-5xl font-semibold leading-tight">
+Never forget an
+expiration date again
+</h1>
+
+<p className="mt-6 text-slate-400 text-lg max-w-xl">
+Expire Hero keeps track of inspections, insurance, licenses and all
+important deadlines for your business or home.
+</p>
+
+<div className="mt-8 flex gap-4">
+
+<button
+onClick={startFree}
+className="bg-emerald-400 text-slate-950 px-6 py-3 rounded-xl font-semibold">
+Start free
+</button>
+
+<button
+onClick={upgrade}
+className="border border-white/10 px-6 py-3 rounded-xl">
+Upgrade to Pro
+</button>
+
+</div>
+
+</div>
+
+
+<div className="rounded-3xl border border-white/10 p-6 bg-white/5">
+
+<div className="space-y-3">
+
+<StatusCard title="Vehicle inspection" subtitle="Due in 4 days" tone="yellow" />
+
+<StatusCard title="Fire extinguisher" subtitle="Expired today" tone="red" />
+
+<StatusCard title="Insurance" subtitle="142 days left" tone="green" />
+
+</div>
+
+</div>
+
+</section>
+
+
+<section className="max-w-7xl mx-auto px-6 py-20 grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+{features.map(f=> (
+
+<div key={f.title} className="border border-white/10 rounded-2xl p-6 bg-white/5">
+<div className="text-3xl">{f.icon}</div>
+<h3 className="mt-4 font-semibold text-xl">{f.title}</h3>
+<p className="mt-2 text-slate-400">{f.text}</p>
+</div>
+
+))}
+
+</section>
+
+
+<section className="max-w-5xl mx-auto px-6 py-20 grid lg:grid-cols-2 gap-6">
+
+{pricing.map(p => (
+
+<div key={p.name}
+className={`p-8 rounded-3xl border ${p.primary ? "border-emerald-300/30 bg-emerald-400/10" : "border-white/10 bg-white/5"}`}>
+
+<h3 className="text-2xl font-semibold">{p.name}</h3>
+
+<div className="text-4xl mt-4">{p.price}</div>
+
+<div className="mt-6 space-y-2">
+
+{p.features.map(f=> (
+<div key={f} className="text-slate-300">✓ {f}</div>
+))}
+
+</div>
+
+<button
+onClick={p.cta}
+className={`mt-6 w-full py-3 rounded-xl font-semibold ${p.primary ? "bg-emerald-400 text-slate-950" : "border border-white/10"}`}>
+Upgrade
+</button>
+
+</div>
+
+))}
+
+</section>
+
+
+</main>
+
+
+<footer className="border-t border-white/10 py-6 text-center text-slate-400">
+© 2026 Expire Hero
+</footer>
+
+
+</div>
+
+  );
+}
+
+
+function StatusCard({title,subtitle,tone}){
+
+const colors={
+red:"bg-red-400/10 border-red-300/20",
+yellow:"bg-yellow-400/10 border-yellow-300/20",
+green:"bg-emerald-400/10 border-emerald-300/20"
+};
+
+return (
+
+<div className={`p-4 rounded-xl border ${colors[tone]}`}>
+
+<div className="font-semibold">{title}</div>
+<div className="text-sm text-slate-400">{subtitle}</div>
+
+</div>
+
+)
+}
