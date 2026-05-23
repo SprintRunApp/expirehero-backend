@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     frontend_url: str = "http://localhost:5173"
 
     # ✅ STAŁE (nie pola Pydantic)
-    FREE_REMINDER_LIMIT: ClassVar[int] = 5
+    FREE_REMINDER_LIMIT: ClassVar[int] = 9999
     PRO_REMINDER_LIMIT: ClassVar[int | None] = None
 
 
