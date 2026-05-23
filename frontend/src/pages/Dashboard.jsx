@@ -33,7 +33,7 @@ export default function Dashboard({ user }) {
     const [view, setView] = useState("dashboard");
 
     const load = async () => {
-        const res = await api.get("/reminders");
+        const res = await api.get("/reminders/");
         setItems(res.data);
     };
 
@@ -43,7 +43,7 @@ export default function Dashboard({ user }) {
 
     const remove = async (id) => {
         if (!confirm("Delete this reminder?")) return;
-        await api.delete(`/reminders/${id}`); 
+        await api.delete(`/reminders/${id}/`);
         load();
     };
 
@@ -51,7 +51,7 @@ export default function Dashboard({ user }) {
         const newDate = prompt("New date (YYYY-MM-DD)", reminder.due_date);
         if (!newDate) return;
 
-        await api.put(`/reminders/${reminder.id}`, {
+        await api.put(`/reminders/${reminder.id}/`, {
             due_date: newDate,
         });
 
