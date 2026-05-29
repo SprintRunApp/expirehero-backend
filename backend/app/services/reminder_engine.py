@@ -23,6 +23,7 @@ def should_send_today(reminder: Reminder, today: date) -> bool:
 
 def run_reminders(db: Session) -> dict:
     today = datetime.now(ZoneInfo("Europe/Amsterdam")).date()
+    print(f"📅 Today Amsterdam: {today}")
 
     reminders = (
         db.query(Reminder)
