@@ -8,7 +8,8 @@ from .email_service import email_service
 from datetime import date, timedelta, datetime
 from zoneinfo import ZoneInfo
 
-from datetime import timedelta
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 def should_send_today(reminder: Reminder, today: date) -> bool:
     if not reminder.advance_days:
@@ -22,7 +23,7 @@ def should_send_today(reminder: Reminder, today: date) -> bool:
 
 
 def run_reminders(db: Session) -> dict:
-    today = datetime.now(ZoneInfo("Europe/Amsterdam")).date()
+    today = datetime.now(ZoneInfo(reminder.timezone)).date()
     print(f"📅 Today Amsterdam: {today}")
 
     reminders = (
@@ -60,7 +61,11 @@ def run_reminders(db: Session) -> dict:
         if not recipients:
             continue
 
-        subject = build_email_subject(item, reminder.due_date)
+        subject = build_email_subject(
+            item,
+            reminder.due_date,
+            reminder.timezone
+        )
         body = build_email_body(reminder, item)
 
         for user in recipients:

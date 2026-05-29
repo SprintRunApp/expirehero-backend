@@ -17,8 +17,15 @@ def compute_notification_status(due_date: date) -> tuple[str, int]:
     return "normal", diff
 
 
-def build_email_subject(item: Item, due_date: date) -> str:
-    status, diff = compute_notification_status(due_date)
+def build_email_subject(
+    item: Item,
+    due_date: date,
+    timezone: str = "UTC"
+) -> str:
+    status, diff = compute_notification_status(
+        due_date,
+        timezone
+    )
 
     if status == "expired":
         return f"[EXPIRED] {item.title} has expired"
@@ -39,7 +46,10 @@ def build_email_subject(item: Item, due_date: date) -> str:
 
 
 def build_email_body(reminder: Reminder, item: Item) -> str:
-    status, diff = compute_notification_status(reminder.due_date)
+    status, diff = compute_notification_status(
+        reminder.due_date,
+        reminder.timezone
+    )
 
     if status == "expired":
         status_text = "Expired"
