@@ -65,6 +65,7 @@ class Config:
 class ReminderCreate(BaseModel):
     item_id: UUID
     due_date: date
+    timezone: str = "UTC"
     recurrence_months: int = 0
     advance_days: list[int] = [30, 7, 0]
 
@@ -80,6 +81,7 @@ class ReminderRead(BaseModel):
     id: UUID
     item_id: UUID
     due_date: date
+    timezone: str
     recurrence_months: int
     advance_days: list[int]
     status: str
@@ -94,6 +96,7 @@ class ReminderWithItem(BaseModel):
     id: UUID
     item_id: UUID
     due_date: date
+    timezone: str
     recurrence_months: int
     advance_days: list[int]
     status: str

@@ -95,6 +95,7 @@ class Item(Base):
 
 class Reminder(Base):
     __tablename__ = "reminders"
+    
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=uuid_str)
     item_id: Mapped[str] = mapped_column(
@@ -105,6 +106,7 @@ class Reminder(Base):
     )
 
     due_date: Mapped[date] = mapped_column(Date, nullable=False)
+    timezone: Mapped[str] = mapped_column(String(64), default="UTC", nullable=False)
     recurrence_months: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     advance_days: Mapped[list[int]] = mapped_column(JSON, default=[30, 7, 0], nullable=False)
     status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
