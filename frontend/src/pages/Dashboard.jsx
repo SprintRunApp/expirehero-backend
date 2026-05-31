@@ -253,8 +253,10 @@ export default function Dashboard({ user }) {
                                                     Company asset
                                                 </div>
 
-                                                <EmailStatus reminder={r} />
+                                                
                                             </div>
+
+                                            <EmailStatus reminder={r} />
 
                                             <div style={{
                                                 fontWeight: 600,
