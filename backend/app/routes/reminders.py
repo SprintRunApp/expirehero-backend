@@ -5,10 +5,11 @@ from sqlalchemy.orm import Session, joinedload
 from ..db import get_db
 from ..deps import get_current_user
 from ..models import Item, Reminder, UserProfile, Notification
-from ..schemas import ReminderCreate, ReminderRead, ReminderUpdate, ReminderWithItem
+from ..schemas import ReminderCreate, ReminderRead, ReminderUpdate, ReminderWithItem, NotificationRead
 from ..services.reminder_status import compute_days_left, compute_ui_status
 from ..services.plan_limits import check_reminder_limit
 from ..services.team_access import item_access_filter
+
 
 router = APIRouter()
 
@@ -219,4 +220,33 @@ def delete_reminder(
     db.delete(reminder)
     db.commit()
     return None
+
+
+@router.get("/{reminder_id}/notifications", response_model=list[NotificationRead])
+def get_reminder_notifications(
+    reminder_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    reminder = (
+        db.query(Reminder)
+        .join(Item, Reminder.item_id == Item.id)
+        .filter(
+            Reminder.id == reminder_id,
+            Item.owner_id == current_user.id
+        )
+        .first()
+    )
+
+    if not reminder:
+        raise HTTPException(status_code=403, detail="Only manager can view notification history")
+
+    notifications = (
+        db.query(Notification)
+        .filter(Notification.reminder_id == reminder.id)
+        .order_by(Notification.scheduled_at.desc())
+        .all()
+    )
+
+    return notifications
 

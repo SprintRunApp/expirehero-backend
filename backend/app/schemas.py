@@ -137,3 +137,18 @@ class TeamMemberRead(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+
+class NotificationRead(BaseModel):
+    id: UUID
+    recipient_email: str
+    channel: str
+    trigger_days: int
+    due_date: date
+    scheduled_at: datetime
+    sent_at: datetime | None = None
+    status: str
+    error: str | None = None
+
+    model_config = {"from_attributes": True}
