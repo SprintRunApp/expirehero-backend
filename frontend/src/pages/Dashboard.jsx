@@ -32,9 +32,26 @@ export default function Dashboard({ user }) {
     const [showForm, setShowForm] = useState(false);
     const [view, setView] = useState("dashboard");
 
+    const [notificationModal, setNotificationModal] = useState(null);
+    const [notificationHistory, setNotificationHistory] = useState([]);
+
     const load = async () => {
         const res = await api.get("/reminders/");
         setItems(res.data);
+    };
+
+    const openNotificationHistory = async (reminder) => {
+        try {
+            const res = await api.get(
+                `/reminders/${reminder.id}/notifications`
+            );
+
+            setNotificationHistory(res.data);
+            setNotificationModal(reminder);
+
+        } catch (e) {
+            alert("Cannot load notification history");
+        }
     };
 
     useEffect(() => {
@@ -256,7 +273,10 @@ export default function Dashboard({ user }) {
                                                 
                                             </div>
 
-                                            <EmailStatus reminder={r} />
+                                            <EmailStatus
+                                                reminder={r}
+                                                onClick={() => openNotificationHistory(r)}
+                                            />
 
                                             <div style={{
                                                 fontWeight: 600,
@@ -311,7 +331,10 @@ export default function Dashboard({ user }) {
                                             </div>
                                         </div>
 
-                                        <EmailStatus reminder={r} />
+                                        <EmailStatus
+                                            reminder={r}
+                                            onClick={() => openNotificationHistory(r)}
+                                        />
 
                                         <div style={{
                                             color: "#ef4444",
@@ -333,11 +356,99 @@ export default function Dashboard({ user }) {
                             items={items}
                             remove={remove}
                             edit={edit}
+                            openNotificationHistory={openNotificationHistory}
                         />
                     )}
 
                     {view === "team" && <TeamPanel />}
                     {view === "settings" && <SettingsPanel />}
+
+                    {notificationModal && (
+                        <div style={{
+                            position: "fixed",
+                            inset: 0,
+                            background: "rgba(0,0,0,0.45)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            zIndex: 9999
+                        }}>
+                            <div style={{
+                                width: 700,
+                                maxHeight: "80vh",
+                                overflowY: "auto",
+                                background: "white",
+                                borderRadius: 20,
+                                padding: 24,
+                                boxShadow: "0 30px 80px rgba(0,0,0,0.3)"
+                            }}>
+
+                                <div style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 20
+                                }}>
+                                    <h2>
+                                        Email History
+                                    </h2>
+
+                                    <button
+                                        onClick={() => setNotificationModal(null)}
+                                    >
+                                        ✖
+                                    </button>
+                                </div>
+
+                                {notificationHistory.length === 0 && (
+                                    <div>
+                                        No emails yet
+                                    </div>
+                                )}
+
+                                {notificationHistory.map((n) => (
+                                    <div
+                                        key={n.id}
+                                        style={{
+                                            padding: 16,
+                                            border: "1px solid #e5e7eb",
+                                            borderRadius: 12,
+                                            marginBottom: 12
+                                        }}
+                                    >
+                                        <div>
+                                            <strong>Recipient:</strong> {n.recipient_email}
+                                        </div>
+
+                                        <div>
+                                            <strong>Status:</strong> {n.status}
+                                        </div>
+
+                                        <div>
+                                            <strong>Trigger:</strong> {n.trigger_days} days
+                                        </div>
+
+                                        <div>
+                                            <strong>Sent:</strong>{" "}
+                                            {n.sent_at
+                                                ? new Date(n.sent_at).toLocaleString()
+                                                : "Not sent"}
+                                        </div>
+
+                                        {n.error && (
+                                            <div style={{
+                                                color: "#dc2626",
+                                                marginTop: 8
+                                            }}>
+                                                {n.error}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
                 </div>
             </div>
         </div>
@@ -443,27 +554,35 @@ function StatusBadge({ status }) {
     );
 }
 
-function EmailStatus({ reminder }) {
+function EmailStatus({ reminder, onClick }) {
     if (reminder.email_status === "sent") {
         return (
-            <div style={{
-                fontSize: 12,
-                color: "#16a34a",
-                marginTop: 6,
-                fontWeight: 600
-            }}>
+            <div
+                onClick={onClick}
+                style={{
+                    fontSize: 12,
+                    color: "#16a34a",
+                    marginTop: 6,
+                    fontWeight: 600,
+                    cursor: "pointer"
+                }}
+            >
                 Email sent ✅
             </div>
         );
     }
 
     return (
-        <div style={{
-            fontSize: 12,
-            color: "#94a3b8",
-            marginTop: 6,
-            fontWeight: 500
-        }}>
+        <div
+            onClick={onClick}
+            style={{
+                fontSize: 12,
+                color: "#94a3b8",
+                marginTop: 6,
+                fontWeight: 500,
+                cursor: "pointer"
+            }}
+        >
             No email sent yet
         </div>
     );
@@ -531,7 +650,7 @@ function ReminderCard({ title, subtitle, days, color }) {
 }
 
 
-function RemindersTable({ items, remove, edit }) {
+function RemindersTable({ items, remove, edit, openNotificationHistory }) {
     return (
         <>
             <h2 style={{ marginBottom: 20 }}>All Reminders</h2>
@@ -572,7 +691,10 @@ function RemindersTable({ items, remove, edit }) {
                                         <StatusBadge status={status} />
                                     </td>
                                     <td style={tdStyle}>
-                                        <EmailStatus reminder={reminder} />
+                                        <EmailStatus
+                                            reminder={reminder}
+                                            onClick={() => openNotificationHistory(reminder)}
+                                        />
                                     </td>
                                     <td style={tdStyle}>
                                         <button onClick={() => remove(reminder.id)}>❌</button>
