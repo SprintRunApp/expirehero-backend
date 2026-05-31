@@ -252,6 +252,8 @@ export default function Dashboard({ user }) {
                                                 }}>
                                                     Company asset
                                                 </div>
+
+                                                <EmailStatus reminder={r} />
                                             </div>
 
                                             <div style={{
@@ -313,6 +315,9 @@ export default function Dashboard({ user }) {
                                         }}>
                                             expired
                                         </div>
+
+                                        <EmailStatus reminder={r} />
+
                                     </div>
                                 ))}
                             </div>
@@ -434,6 +439,32 @@ function StatusBadge({ status }) {
     );
 }
 
+function EmailStatus({ reminder }) {
+    if (reminder.email_status === "sent") {
+        return (
+            <div style={{
+                fontSize: 12,
+                color: "#16a34a",
+                marginTop: 6,
+                fontWeight: 600
+            }}>
+                Email sent ✅
+            </div>
+        );
+    }
+
+    return (
+        <div style={{
+            fontSize: 12,
+            color: "#94a3b8",
+            marginTop: 6,
+            fontWeight: 500
+        }}>
+            No email sent yet
+        </div>
+    );
+}
+
 
 
 function StatCard({ label, value }) {
@@ -519,6 +550,7 @@ function RemindersTable({ items, remove, edit }) {
                             <th style={thStyle}>Category</th>
                             <th style={thStyle}>Due Date</th>
                             <th style={thStyle}>Status</th>
+                            <th style={thStyle}>Email</th>
                             <th style={thStyle}></th>
                         </tr>
                     </thead>
@@ -534,6 +566,9 @@ function RemindersTable({ items, remove, edit }) {
                                     <td style={tdStyle}>{formatDate(reminder.due_date)}</td>
                                     <td style={tdStyle}>
                                         <StatusBadge status={status} />
+                                    </td>
+                                    <td style={tdStyle}>
+                                        <EmailStatus reminder={reminder} />
                                     </td>
                                     <td style={tdStyle}>
                                         <button onClick={() => remove(reminder.id)}>❌</button>
