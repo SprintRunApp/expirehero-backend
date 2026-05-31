@@ -309,6 +309,8 @@ export default function Dashboard({ user }) {
                                             </div>
                                         </div>
 
+                                        <EmailStatus reminder={r} />
+
                                         <div style={{
                                             color: "#ef4444",
                                             fontWeight: 600
@@ -316,7 +318,7 @@ export default function Dashboard({ user }) {
                                             expired
                                         </div>
 
-                                        <EmailStatus reminder={r} />
+                                        
 
                                     </div>
                                 ))}
