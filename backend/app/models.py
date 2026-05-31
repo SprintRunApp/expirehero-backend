@@ -132,6 +132,12 @@ class Notification(Base):
 
     reminder: Mapped["Reminder"] = relationship(back_populates="notifications")
 
+    recipient_email: Mapped[str] = mapped_column(String(255), nullable=False)
+    recipient_user_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("user_profiles.id"), nullable=True)
+
+    trigger_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    due_date: Mapped[date] = mapped_column(Date, nullable=False)
+
 
 class Team(Base):
     __tablename__ = "teams"

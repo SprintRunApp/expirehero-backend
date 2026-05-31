@@ -5,7 +5,7 @@ from ..models import Reminder, Item
 
 
 def compute_notification_status(due_date: date) -> tuple[str, int]:
-    today = datetime.now(ZoneInfo("Europe/Amsterdam")).date()
+    today = datetime.now(ZoneInfo(timezone or "UTC")).date()
     diff = (due_date - today).days
 
     if diff < 0:
