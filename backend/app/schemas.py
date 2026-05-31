@@ -106,6 +106,10 @@ class ReminderWithItem(BaseModel):
     item_title: str
     item_category: str
 
+    email_status: str | None = None
+    last_email_sent_at: datetime | None = None
+    email_sent_count: int = 0
+
 
 from pydantic import BaseModel
 

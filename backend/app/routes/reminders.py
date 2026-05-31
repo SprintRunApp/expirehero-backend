@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from ..db import get_db
 from ..deps import get_current_user
-from ..models import Item, Reminder, UserProfile
+from ..models import Item, Reminder, UserProfile, Notification
 from ..schemas import ReminderCreate, ReminderRead, ReminderUpdate, ReminderWithItem
 from ..services.reminder_status import compute_days_left, compute_ui_status
 from ..services.plan_limits import check_reminder_limit
@@ -30,6 +30,26 @@ def list_reminders(
     result: list[ReminderWithItem] = []
 
     for reminder in reminders:
+
+        sent_notifications = (
+            db.query(Notification)
+            .filter(
+                Notification.reminder_id == reminder.id,
+                Notification.channel == "email",
+                Notification.status == "sent",
+            )
+            .order_by(Notification.sent_at.desc())
+            .all()
+        )
+
+        last_sent = sent_notifications[0].sent_at if sent_notifications else None
+        email_sent_count = len(sent_notifications)
+
+        if email_sent_count > 0:
+            email_status = "sent"
+        else:
+            email_status = "none"
+
         result.append(
             ReminderWithItem(
                 id=reminder.id,
@@ -44,6 +64,10 @@ def list_reminders(
                 days_left=compute_days_left(reminder.due_date),
                 item_title=reminder.item.title,
                 item_category=reminder.item.category,
+
+                email_status=email_status,
+                last_email_sent_at=last_sent,
+                email_sent_count=email_sent_count,
             )
         )
 
