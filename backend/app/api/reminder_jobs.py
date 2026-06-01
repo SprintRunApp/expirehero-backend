@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+import traceback
 
 from ..db import get_db
 from ..services.reminder_engine import run_reminders
@@ -9,16 +10,14 @@ router = APIRouter()
 
 @router.post("/run")
 def run_job(db: Session = Depends(get_db)):
-    return run_reminders(db)
+    try:
+        return run_reminders(db)
+    except Exception as e:
+        print("❌ JOB ERROR:", str(e))
+        print(traceback.format_exc())
 
-@router.get("/test-email")
-def test_email():
-    from app.services.email_service import email_service
-
-    email_service.send_email(
-        to_email="krzschramm@gmail.com",
-        subject="ExpireHero TEST 🚀",
-        content="Jeśli to widzisz — działa 💥"
-    )
-
-    return {"status": "sent"}
+        return {
+            "status": "error",
+            "error": str(e),
+            "traceback": traceback.format_exc()
+        }
