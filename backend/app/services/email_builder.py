@@ -4,16 +4,22 @@ from zoneinfo import ZoneInfo
 from ..models import Reminder, Item
 
 
-def compute_notification_status(due_date: date) -> tuple[str, int]:
+def compute_notification_status(
+    due_date: date,
+    timezone: str = "UTC"
+) -> tuple[str, int]:
     today = datetime.now(ZoneInfo(timezone or "UTC")).date()
     diff = (due_date - today).days
 
     if diff < 0:
         return "expired", diff
+
     if diff <= 7:
         return "urgent", diff
+
     if diff <= 30:
         return "soon", diff
+
     return "normal", diff
 
 
@@ -22,10 +28,7 @@ def build_email_subject(
     due_date: date,
     timezone: str = "UTC"
 ) -> str:
-    status, diff = compute_notification_status(
-        due_date,
-        timezone
-    )
+    status, diff = compute_notification_status(due_date, timezone)
 
     if status == "expired":
         return f"[EXPIRED] {item.title} has expired"
@@ -62,6 +65,15 @@ def build_email_body(reminder: Reminder, item: Item) -> str:
 
     assigned_to = item.assigned_user.name if getattr(item, "assigned_user", None) else "Unassigned"
 
+    if diff < 0:
+        timing_text = f"Expired {-diff} day(s) ago"
+    elif diff == 0:
+        timing_text = "Expires today"
+    elif diff == 1:
+        timing_text = "Expires in 1 day"
+    else:
+        timing_text = f"Expires in {diff} days"
+
     body = f"""Hello,
 
 This is a reminder about: "{item.title}"
@@ -70,11 +82,13 @@ Category: {item.category or "—"}
 Assigned to: {assigned_to}
 Due date: {reminder.due_date.strftime("%Y-%m-%d")}
 Status: {status_text}
+Timing: {timing_text}
+Timezone: {reminder.timezone or "UTC"}
 
 Please take action to avoid issues.
 
 Open dashboard:
-https://expireheros.app/dashboard
+https://www.expireheros.app
 
 – ExpireHero
 """
