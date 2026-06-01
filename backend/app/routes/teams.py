@@ -1,11 +1,21 @@
+from datetime import datetime, timedelta
+import secrets
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import get_current_user
-from ..models import Team, UserProfile
-
-from ..schemas import TeamCreate, TeamRead, AddTeamMember, TeamMemberRead
+from ..models import Team, TeamMember, UserProfile, TeamInvite
+from ..schemas import (
+    TeamCreate,
+    TeamRead,
+    AddTeamMember,
+    TeamMemberRead,
+    TeamInviteCreate,
+    TeamInviteRead,
+)
+from app.services.email_service import email_service
 
 router = APIRouter()
 
@@ -50,7 +60,7 @@ def get_my_team(
 
     return None
 
-from ..models import TeamMember, UserProfile
+
 
 @router.post("/add-member", status_code=201)
 def add_member(
@@ -119,3 +129,68 @@ def list_members(
         )
 
     return result
+
+@router.post("/invite", response_model=TeamInviteRead)
+def invite_team_member(
+    payload: TeamInviteCreate,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    team = db.query(Team).filter(Team.owner_id == current_user.id).first()
+
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if payload.role not in ["manager", "employee"]:
+        raise HTTPException(status_code=400, detail="Invalid role")
+
+    existing_member = (
+        db.query(UserProfile)
+        .join(TeamMember, TeamMember.user_id == UserProfile.id)
+        .filter(
+            TeamMember.team_id == team.id,
+            UserProfile.email == payload.email
+        )
+        .first()
+    )
+
+    if existing_member:
+        raise HTTPException(status_code=400, detail="User is already in team")
+
+    token = secrets.token_urlsafe(32)
+
+    invite = TeamInvite(
+        team_id=team.id,
+        email=payload.email,
+        role=payload.role,
+        token=token,
+        invited_by_id=current_user.id,
+        expires_at=datetime.utcnow() + timedelta(days=7),
+        accepted=False,
+    )
+
+    db.add(invite)
+    db.commit()
+    db.refresh(invite)
+
+    invite_url = f"https://www.expireheros.app/invite/{token}"
+
+    email_service.send_email(
+        to_email=payload.email,
+        subject="You were invited to ExpireHero",
+        content=f"""Hello,
+
+You have been invited to join a team in ExpireHero.
+
+Role: {payload.role}
+
+Accept invitation:
+{invite_url}
+
+This invitation expires in 7 days.
+
+– ExpireHero
+"""
+    )
+
+    return invite

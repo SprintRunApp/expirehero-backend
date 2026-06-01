@@ -2,7 +2,7 @@ from __future__ import annotations
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, func
 from sqlalchemy.orm import relationship
 import uuid
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 
 
 from sqlalchemy import (
@@ -167,3 +167,31 @@ class TeamMember(Base):
 
     team = relationship("Team", back_populates="members")
     user = relationship("UserProfile", back_populates="team_membership")
+
+
+class TeamInvite(Base):
+    __tablename__ = "team_invites"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    team_id = Column(Integer, ForeignKey("teams.id"), nullable=False)
+    email = Column(String, nullable=False, index=True)
+
+    role = Column(String, nullable=False, default="employee")
+
+    token = Column(String, nullable=False, unique=True, index=True)
+
+    invited_by_id = Column(String, ForeignKey("user_profiles.id"), nullable=False)
+
+    accepted = Column(Boolean, nullable=False, default=False)
+
+    expires_at = Column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.utcnow() + timedelta(days=7)
+    )
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    team = relationship("Team")
+    invited_by = relationship("UserProfile")

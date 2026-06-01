@@ -5,6 +5,7 @@ export default function TeamPanel() {
     const [team, setTeam] = useState(null);
     const [members, setMembers] = useState([]);
     const [email, setEmail] = useState("");
+    const [role, setRole] = useState("employee");
     const [loading, setLoading] = useState(false);
 
     const load = async () => {
@@ -25,44 +26,47 @@ export default function TeamPanel() {
         load();
     }, []);
 
-    const add = async () => {
+    const invite = async () => {
         if (!email) return;
 
         try {
             setLoading(true);
 
-            await api.post("/teams/add-member", { email });
+            await api.post("/teams/invite", {
+                email,
+                role,
+            });
+
+            alert("Invitation sent ✅");
 
             setEmail("");
+            setRole("employee");
             load();
 
         } catch (e) {
-            alert(e.response?.data?.detail || "Error adding user");
+            alert(e.response?.data?.detail || "Error sending invitation");
         } finally {
             setLoading(false);
         }
     };
 
-    // ❌ brak teamu
     if (!team) {
         return (
             <div>
                 <h2>No team yet</h2>
-                <p>Create your team first (coming next step 👇)</p>
+                <p>Create your team first.</p>
             </div>
         );
     }
 
     return (
         <div>
-            {/* TEAM HEADER */}
             <h2 style={{ marginBottom: 10 }}>{team.name}</h2>
 
             <p style={{ color: "#666", marginBottom: 20 }}>
-                Manage your team members
+                Invite and manage your team members
             </p>
 
-            {/* ADD MEMBER */}
             <div style={{
                 display: "flex",
                 gap: 10,
@@ -80,8 +84,21 @@ export default function TeamPanel() {
                     }}
                 />
 
+                <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value)}
+                    style={{
+                        padding: 10,
+                        borderRadius: 6,
+                        border: "1px solid #ccc"
+                    }}
+                >
+                    <option value="employee">Employee</option>
+                    <option value="manager">Manager</option>
+                </select>
+
                 <button
-                    onClick={add}
+                    onClick={invite}
                     disabled={loading}
                     style={{
                         background: "#3b82f6",
@@ -91,11 +108,10 @@ export default function TeamPanel() {
                         border: "none"
                     }}
                 >
-                    {loading ? "..." : "Add"}
+                    {loading ? "..." : "Invite"}
                 </button>
             </div>
 
-            {/* MEMBERS LIST */}
             <h3>Members</h3>
 
             {members.length === 0 && (

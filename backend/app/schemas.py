@@ -152,3 +152,18 @@ class NotificationRead(BaseModel):
     error: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class TeamInviteCreate(BaseModel):
+    email: EmailStr
+    role: str = "employee"
+
+
+class TeamInviteRead(BaseModel):
+    id: int
+    email: EmailStr
+    role: str
+    accepted: bool
+    expires_at: datetime
+
+    model_config = {"from_attributes": True}
