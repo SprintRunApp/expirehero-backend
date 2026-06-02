@@ -292,7 +292,7 @@ export default function Dashboard({ user }) {
                     )}
 
                     {/* EXPIRED */}
-                    {expired.length > 0 && (
+                    {view === "dashboard" && expired.length > 0 && (
                         <>
                             <div style={{
                                 marginTop: 40,
