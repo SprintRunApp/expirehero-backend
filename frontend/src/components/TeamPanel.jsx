@@ -6,6 +6,7 @@ export default function TeamPanel() {
     const [members, setMembers] = useState([]);
     const [invites, setInvites] = useState([]);
     const [email, setEmail] = useState("");
+    const [name, setName] = useState("");
     const [role, setRole] = useState("employee");
     const [loading, setLoading] = useState(false);
 
@@ -38,12 +39,14 @@ export default function TeamPanel() {
 
             await api.post("/teams/invite", {
                 email,
+                name,
                 role,
             });
 
             alert("Invitation sent ✅");
 
             setEmail("");
+            setName("");
             setRole("employee");
             load();
 
@@ -79,6 +82,17 @@ export default function TeamPanel() {
                 gap: 10,
                 marginBottom: 20
             }}>
+                <input
+                    placeholder="Full name..."
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    style={{
+                        padding: 10,
+                        flex: 1,
+                        borderRadius: 6,
+                        border: "1px solid #ccc"
+                    }}
+                />
                 <input
                     placeholder="Enter email..."
                     value={email}
@@ -141,7 +155,13 @@ export default function TeamPanel() {
                     }}
                 >
                     <div>
-                        <div>{invite.email}</div>
+                        <div style={{ fontWeight: 600 }}>
+                            {invite.name || "No name"}
+                        </div>
+
+                        <div style={{ fontSize: 13, color: "#6b7280" }}>
+                            {invite.email}
+                        </div>
                         <div style={{ fontSize: 12, color: "#6b7280" }}>
                             Role: {invite.role}
                         </div>
@@ -181,7 +201,13 @@ export default function TeamPanel() {
                     }}
                 >
                     <div>
-                        <div>{invite.email}</div>
+                        <div style={{ fontWeight: 600 }}>
+                            {invite.name || "No name"}
+                        </div>
+
+                        <div style={{ fontSize: 13, color: "#6b7280" }}>
+                            {invite.email}
+                        </div>
                         <div style={{ fontSize: 12, color: "#6b7280" }}>
                             Role: {invite.role}
                         </div>

@@ -10,12 +10,9 @@ export default function LoginPage({ onLogin }) {
     const [password, setPassword] = useState("");
     const [company, setCompany] = useState("");
     const [fullName, setFullName] = useState("");
+    const [mode, setMode] = useState("register");
 
-    const callBackend = async (
-        token: string,
-        fullName: string | null,
-        company: string | null
-    ) => {
+    const callBackend = async (token, fullNameValue, companyValue) => {
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
                 method: "POST",
@@ -24,12 +21,10 @@ export default function LoginPage({ onLogin }) {
                     "Content-Type": "application/json"
                 },
                 body: JSON.stringify({
-                    full_name: fullName,
-                    company_name: company
+                    full_name: fullNameValue,
+                    company_name: companyValue
                 })
             });
-
-            console.log("RESPONSE STATUS:", res.status);
 
             if (!res.ok) {
                 const text = await res.text();
@@ -39,11 +34,7 @@ export default function LoginPage({ onLogin }) {
             }
 
             const user = await res.json();
-
-            console.log("USER FROM BACKEND:", user);
-
             localStorage.setItem("token", token);
-
             onLogin(user);
 
         } catch (e) {
@@ -52,109 +43,287 @@ export default function LoginPage({ onLogin }) {
         }
     };
 
+    const handleRegister = async () => {
+        try {
+            if (!fullName || !company || !email || !password) {
+                alert("Fill in all fields");
+                return;
+            }
+
+            const token = await registerWithEmail(email, password);
+            await callBackend(token, fullName, company);
+
+        } catch (e) {
+            console.error("REGISTER ERROR:", e);
+            alert(e.message);
+        }
+    };
+
+    const handleLogin = async () => {
+        try {
+            if (!email || !password) {
+                alert("Enter email and password");
+                return;
+            }
+
+            const token = await loginWithEmail(email, password);
+            await callBackend(token, null, null);
+
+        } catch (e) {
+            console.error("LOGIN ERROR:", e);
+            alert(e.message);
+        }
+    };
+
+    const handleGoogle = async () => {
+        try {
+            const token = await loginWithGoogle();
+            await callBackend(token, null, null);
+
+        } catch (e) {
+            console.error("GOOGLE ERROR:", e);
+            alert(e.message);
+        }
+    };
+
     return (
         <div style={{
-            height: "100vh",
+            minHeight: "100vh",
+            width: "100%",
+            background: "linear-gradient(135deg, #dbeafe, #eff6ff)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            flexDirection: "column",
-            gap: 10
+            padding: 24,
+            fontFamily: "Inter, sans-serif"
         }}>
-            <h2>ExpireHero</h2>
-
-            {/* 🔥 COMPANY */}
-            <input
-                placeholder="Company name"
-                value={company}
-                onChange={(e) => setCompany(e.target.value)}
-            />
-
-            {/* 🔥 FULL NAME */}
-            <input
-                placeholder="Full name"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-            />
-
-            {/* EMAIL */}
-            <input
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-            />
-
-            {/* PASSWORD */}
-            <input
-                placeholder="Password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-            />
-
-            {/* REGISTER */}
-            <button onClick={async () => {
-                try {
-                    // 🔥 WALIDACJA NAJPIERW
-                    if (!fullName || !company) {
-                        alert("Enter full name and company");
-                        return;
-                    }
-
-                    console.log("REGISTER CLICK");
-
-                    const token = await registerWithEmail(email, password);
-
-                    console.log("TOKEN:", token);
-
-                    await callBackend(token, fullName, company);
-
-                } catch (e) {
-                    console.error("REGISTER ERROR:", e);
-                    alert(e.message);
-                }
+            <div style={{
+                width: "100%",
+                maxWidth: 1180,
+                minHeight: 620,
+                display: "flex",
+                overflow: "hidden",
+                borderRadius: 28,
+                background: "rgba(255,255,255,0.75)",
+                backdropFilter: "blur(20px)",
+                boxShadow: "0 30px 80px rgba(37,99,235,0.25)"
             }}>
-                Register
-            </button>
 
-            {/* LOGIN */}
-            <button onClick={async () => {
-                try {
-                    console.log("LOGIN CLICK");
+                {/* LEFT BRAND PANEL */}
+                <div style={{
+                    flex: 1,
+                    padding: 56,
+                    background: "linear-gradient(145deg, rgba(191,219,254,0.9), rgba(96,165,250,0.75))",
+                    color: "#0f172a",
+                    position: "relative"
+                }}>
+                    <img
+                        src="/logo.png"
+                        style={{
+                            height: 48,
+                            marginBottom: 70,
+                            filter: "drop-shadow(0 6px 14px rgba(0,0,0,0.22))"
+                        }}
+                    />
 
-                    const token = await loginWithEmail(email, password);
+                    <h1 style={{
+                        fontSize: 42,
+                        lineHeight: 1.1,
+                        margin: 0,
+                        marginBottom: 20,
+                        letterSpacing: "-1px"
+                    }}>
+                        Stay ahead of<br />expiration dates.
+                    </h1>
 
-                    console.log("TOKEN:", token);
+                    <p style={{
+                        fontSize: 17,
+                        lineHeight: 1.6,
+                        color: "#334155",
+                        maxWidth: 420,
+                        marginBottom: 36
+                    }}>
+                        Track certificates, manage inspections and never miss what matters.
+                    </p>
 
-                    // 🔥 NIE NADPISUJEMY danych
-                    await callBackend(token, null, null);
+                    <Feature title="Track" text="Keep all important company items in one place." />
+                    <Feature title="Manage" text="Set reminders and stay always up to date." />
+                    <Feature title="Never Miss" text="Get notified before anything expires." />
+                </div>
 
-                } catch (e) {
-                    console.error("LOGIN ERROR:", e);
-                    alert(e.message);
-                }
-            }}>
-                Login
-            </button>
+                {/* RIGHT FORM PANEL */}
+                <div style={{
+                    flex: 1,
+                    padding: 64,
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center"
+                }}>
+                    <div style={{
+                        width: "100%",
+                        maxWidth: 460
+                    }}>
+                        <h2 style={{
+                            fontSize: 30,
+                            marginBottom: 8,
+                            color: "#0f172a"
+                        }}>
+                            {mode === "register" ? "Create your account" : "Welcome back"}
+                        </h2>
 
-            {/* GOOGLE */}
-            <button onClick={async () => {
-                try {
-                    console.log("GOOGLE CLICK");
+                        <p style={{
+                            color: "#64748b",
+                            marginBottom: 32
+                        }}>
+                            {mode === "register"
+                                ? "Start managing important deadlines with ExpireHeros."
+                                : "Sign in to continue to your dashboard."}
+                        </p>
 
-                    const token = await loginWithGoogle();
+                        {mode === "register" && (
+                            <>
+                                <Input label="Company name" value={company} onChange={setCompany} />
+                                <Input label="Full name" value={fullName} onChange={setFullName} />
+                            </>
+                        )}
 
-                    console.log("TOKEN:", token);
+                        <Input label="Email address" value={email} onChange={setEmail} />
+                        <Input label="Password" value={password} onChange={setPassword} type="password" />
 
-                    await callBackend(token, null, null);
+                        <button
+                            onClick={mode === "register" ? handleRegister : handleLogin}
+                            style={primaryButton}
+                        >
+                            {mode === "register" ? "Create account" : "Sign in"}
+                        </button>
 
-                } catch (e) {
-                    console.error("GOOGLE ERROR:", e);
-                    alert(e.message);
-                }
-            }}>
-                Google Login
-            </button>
+                        <div style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 12,
+                            margin: "24px 0",
+                            color: "#94a3b8",
+                            fontSize: 14
+                        }}>
+                            <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
+                            or
+                            <div style={{ flex: 1, height: 1, background: "#e2e8f0" }} />
+                        </div>
+
+                        <button
+                            onClick={handleGoogle}
+                            style={googleButton}
+                        >
+                            Continue with Google
+                        </button>
+
+                        <div style={{
+                            marginTop: 28,
+                            textAlign: "center",
+                            color: "#64748b",
+                            fontSize: 14
+                        }}>
+                            {mode === "register" ? "Already have an account? " : "Don't have an account? "}
+
+                            <span
+                                onClick={() => setMode(mode === "register" ? "login" : "register")}
+                                style={{
+                                    color: "#2563eb",
+                                    cursor: "pointer",
+                                    fontWeight: 600
+                                }}
+                            >
+                                {mode === "register" ? "Sign in" : "Create account"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
+
+function Feature({ title, text }) {
+    return (
+        <div style={{
+            display: "flex",
+            gap: 14,
+            marginBottom: 22,
+            alignItems: "flex-start"
+        }}>
+            <div style={{
+                width: 42,
+                height: 42,
+                borderRadius: 14,
+                background: "rgba(255,255,255,0.55)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "#2563eb",
+                fontWeight: 800,
+                boxShadow: "0 8px 18px rgba(37,99,235,0.18)"
+            }}>
+                ✓
+            </div>
+
+            <div>
+                <div style={{ fontWeight: 700, marginBottom: 4 }}>{title}</div>
+                <div style={{ color: "#334155", fontSize: 14, lineHeight: 1.4 }}>{text}</div>
+            </div>
+        </div>
+    );
+}
+
+function Input({ label, value, onChange, type = "text" }) {
+    return (
+        <div style={{ marginBottom: 16 }}>
+            <input
+                type={type}
+                placeholder={label}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    background: "#f8fbff",
+                    border: "1px solid #dbeafe",
+                    borderRadius: 14,
+                    padding: "15px 16px",
+                    fontSize: 15,
+                    outline: "none",
+                    color: "#0f172a",
+                    boxShadow: "inset 0 1px 1px rgba(255,255,255,0.8)"
+                }}
+            />
+        </div>
+    );
+}
+
+const primaryButton = {
+    width: "100%",
+    marginTop: 8,
+    padding: "15px 18px",
+    borderRadius: 999,
+    border: "none",
+    background: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+    color: "white",
+    fontWeight: 700,
+    fontSize: 16,
+    cursor: "pointer",
+    boxShadow: `
+        0 12px 30px rgba(59,130,246,0.4),
+        inset 0 1px 1px rgba(255,255,255,0.4)
+    `
+};
+
+const googleButton = {
+    width: "100%",
+    padding: "14px 18px",
+    borderRadius: 14,
+    border: "1px solid #dbeafe",
+    background: "white",
+    color: "#0f172a",
+    fontWeight: 600,
+    fontSize: 15,
+    cursor: "pointer"
+};
