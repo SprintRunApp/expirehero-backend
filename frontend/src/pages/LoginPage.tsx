@@ -106,7 +106,10 @@ export default function LoginPage({ onLogin }) {
                 borderRadius: 28,
                 background: "rgba(255,255,255,0.75)",
                 backdropFilter: "blur(20px)",
-                boxShadow: "0 30px 80px rgba(37,99,235,0.25)"
+                boxShadow: `
+                    0 25px 60px rgba(37,99,235,0.18),
+                    0 0 80px rgba(96,165,250,0.12)
+                `
             }}>
 
                 {/* LEFT BRAND PANEL */}
@@ -115,7 +118,8 @@ export default function LoginPage({ onLogin }) {
                     padding: 56,
                     background: "linear-gradient(145deg, rgba(191,219,254,0.9), rgba(96,165,250,0.75))",
                     color: "#0f172a",
-                    position: "relative"
+                    position: "relative",
+                    overflow: "hidden"
                 }}>
                     <img
                         src="/logo.png"
@@ -149,6 +153,53 @@ export default function LoginPage({ onLogin }) {
                     <Feature title="Track" text="Keep all important company items in one place." />
                     <Feature title="Manage" text="Set reminders and stay always up to date." />
                     <Feature title="Never Miss" text="Get notified before anything expires." />
+
+
+                    <div style={{
+                        position: "absolute",
+                        width: 240,
+                        height: 240,
+                        borderRadius: "50%",
+                        background: "rgba(96,165,250,0.25)",
+                        filter: "blur(80px)",
+                        bottom: -60,
+                        left: -60
+                    }} />
+
+                    <div style={{
+                        position: "absolute",
+                        width: 120,
+                        height: 120,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.25)",
+                        filter: "blur(50px)",
+                        top: 120,
+                        right: 40
+                    }} />
+
+                    <div style={{
+                        position: "absolute",
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "white",
+                        top: 180,
+                        left: 320,
+                        boxShadow: "0 0 18px rgba(255,255,255,0.9)"
+                    }} />
+
+                    <div style={{
+                        position: "absolute",
+                        width: 4,
+                        height: 4,
+                        borderRadius: "50%",
+                        background: "#ffffff",
+                        bottom: 140,
+                        right: 120,
+                        boxShadow: "0 0 14px rgba(255,255,255,0.9)"
+                    }} />
+
+
                 </div>
 
                 {/* RIGHT FORM PANEL */}
