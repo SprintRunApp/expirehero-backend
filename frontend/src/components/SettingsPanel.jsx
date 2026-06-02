@@ -25,11 +25,40 @@ export default function SettingsPanel() {
         }
     };
 
+    const logout = async () => {
+        try {
+            const auth = getAuth();
+
+            await signOut(auth);
+
+            localStorage.removeItem("token");
+
+            window.location.reload();
+
+        } catch (e) {
+            console.error(e);
+            alert("Logout failed");
+        }
+    };
+
     return (
         <div>
             <h2>Settings</h2>
 
             <div style={{ marginTop: 20 }}>
+                <button
+                    onClick={logout}
+                    style={{
+                        background: "#2563eb",
+                        color: "white",
+                        padding: "10px 20px",
+                        borderRadius: 6,
+                        border: "none",
+                        marginRight: 10
+                    }}
+                >
+                    Log out
+                </button>
                 <button
                     onClick={remove}
                     style={{
