@@ -14,6 +14,7 @@ from ..schemas import (
     TeamMemberRead,
     TeamInviteCreate,
     TeamInviteRead,
+    InviteInfo,
 )
 from app.services.email_service import email_service
 
@@ -214,3 +215,81 @@ def list_team_invites(
     )
 
     return invites
+
+@router.get("/invite/{token}", response_model=InviteInfo)
+def get_invite_info(
+    token: str,
+    db: Session = Depends(get_db),
+):
+    invite = (
+        db.query(TeamInvite)
+        .filter(TeamInvite.token == token)
+        .first()
+    )
+
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found")
+
+    if invite.accepted:
+        raise HTTPException(status_code=400, detail="Invite already accepted")
+
+    if invite.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Invite expired")
+
+    return InviteInfo(
+        email=invite.email,
+        role=invite.role,
+        team_name=invite.team.name,
+        expires_at=invite.expires_at,
+    )
+
+@router.post("/invite/{token}/accept")
+def accept_invite(
+    token: str,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    invite = (
+        db.query(TeamInvite)
+        .filter(TeamInvite.token == token)
+        .first()
+    )
+
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found")
+
+    if invite.accepted:
+        raise HTTPException(status_code=400, detail="Invite already accepted")
+
+    if invite.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Invite expired")
+
+    # ❌ user already in team
+    if current_user.owned_team or current_user.team_membership:
+        raise HTTPException(
+            status_code=400,
+            detail="User already belongs to a team"
+        )
+
+    # ❌ invite email mismatch
+    if current_user.email.lower() != invite.email.lower():
+        raise HTTPException(
+            status_code=403,
+            detail="This invite belongs to another email"
+        )
+
+    member = TeamMember(
+        team_id=invite.team_id,
+        user_id=current_user.id,
+        role=invite.role,
+    )
+
+    db.add(member)
+
+    invite.accepted = True
+
+    db.commit()
+
+    return {
+        "message": "Invite accepted"
+    }

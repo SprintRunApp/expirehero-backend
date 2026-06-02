@@ -167,3 +167,10 @@ class TeamInviteRead(BaseModel):
     expires_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class InviteInfo(BaseModel):
+    email: EmailStr
+    role: str
+    team_name: str
+    expires_at: datetime

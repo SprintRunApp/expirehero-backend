@@ -6,6 +6,8 @@ import Items from "../pages/Items";
 
 import useAuth from "../hooks/useAuth";
 
+import AcceptInvitePage from "../pages/AcceptInvitePage";
+
 export default function Router() {
 
     const { user, loading } = useAuth();
@@ -15,6 +17,8 @@ export default function Router() {
     return (
         <BrowserRouter>
             <Routes>
+                
+                <Route path="/invite/:token" element={<AcceptInvitePage />} />
 
                 {!user && (
                     <Route path="*" element={<Login />} />
