@@ -194,3 +194,23 @@ This invitation expires in 7 days.
     )
 
     return invite
+
+
+@router.get("/invites", response_model=list[TeamInviteRead])
+def list_team_invites(
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    team = db.query(Team).filter(Team.owner_id == current_user.id).first()
+
+    if not team:
+        raise HTTPException(status_code=403, detail="Only manager can view invites")
+
+    invites = (
+        db.query(TeamInvite)
+        .filter(TeamInvite.team_id == team.id)
+        .order_by(TeamInvite.created_at.desc())
+        .all()
+    )
+
+    return invites

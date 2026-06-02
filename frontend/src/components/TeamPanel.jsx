@@ -4,6 +4,7 @@ import api from "../lib/api";
 export default function TeamPanel() {
     const [team, setTeam] = useState(null);
     const [members, setMembers] = useState([]);
+    const [invites, setInvites] = useState([]);
     const [email, setEmail] = useState("");
     const [role, setRole] = useState("employee");
     const [loading, setLoading] = useState(false);
@@ -16,6 +17,9 @@ export default function TeamPanel() {
             if (t.data) {
                 const m = await api.get("/teams/members");
                 setMembers(m.data);
+
+                const i = await api.get("/teams/invites");
+                setInvites(i.data);
             }
         } catch (e) {
             console.error(e);
@@ -58,6 +62,9 @@ export default function TeamPanel() {
             </div>
         );
     }
+
+    const pendingInvites = invites.filter(i => !i.accepted);
+    const acceptedInvites = invites.filter(i => i.accepted);
 
     return (
         <div>
@@ -111,6 +118,86 @@ export default function TeamPanel() {
                     {loading ? "..." : "Invite"}
                 </button>
             </div>
+
+            <h3 style={{ marginTop: 30 }}>Pending invitations</h3>
+
+            {pendingInvites.length === 0 && (
+                <div style={{ color: "#666", marginBottom: 20 }}>
+                    No pending invitations
+                </div>
+            )}
+
+            {pendingInvites.map(invite => (
+                <div
+                    key={invite.id}
+                    style={{
+                        background: "white",
+                        padding: 12,
+                        marginBottom: 10,
+                        borderRadius: 8,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                    }}
+                >
+                    <div>
+                        <div>{invite.email}</div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>
+                            Role: {invite.role}
+                        </div>
+                    </div>
+
+                    <div style={{
+                        fontSize: 12,
+                        background: "#fef3c7",
+                        color: "#92400e",
+                        padding: "4px 8px",
+                        borderRadius: 6
+                    }}>
+                        Not accepted yet
+                    </div>
+                </div>
+            ))}
+
+            <h3 style={{ marginTop: 30 }}>Accepted invitations</h3>
+
+            {acceptedInvites.length === 0 && (
+                <div style={{ color: "#666", marginBottom: 20 }}>
+                    No accepted invitations yet
+                </div>
+            )}
+
+            {acceptedInvites.map(invite => (
+                <div
+                    key={invite.id}
+                    style={{
+                        background: "white",
+                        padding: 12,
+                        marginBottom: 10,
+                        borderRadius: 8,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                    }}
+                >
+                    <div>
+                        <div>{invite.email}</div>
+                        <div style={{ fontSize: 12, color: "#6b7280" }}>
+                            Role: {invite.role}
+                        </div>
+                    </div>
+
+                    <div style={{
+                        fontSize: 12,
+                        background: "#dcfce7",
+                        color: "#166534",
+                        padding: "4px 8px",
+                        borderRadius: 6
+                    }}>
+                        Accepted ✅
+                    </div>
+                </div>
+            ))}
 
             <h3>Members</h3>
 
