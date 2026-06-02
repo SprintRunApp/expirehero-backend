@@ -164,6 +164,7 @@ def invite_team_member(
         team_id=team.id,
         email=payload.email,
         role=payload.role,
+        name=payload.name,
         token=token,
         invited_by_id=current_user.id,
         expires_at=datetime.utcnow() + timedelta(days=7),
@@ -241,6 +242,7 @@ def get_invite_info(
         role=invite.role,
         team_name=invite.team.name,
         expires_at=invite.expires_at,
+        name=invite.name,
     )
 
 @router.post("/invite/{token}/accept")

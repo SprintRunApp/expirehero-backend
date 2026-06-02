@@ -156,6 +156,7 @@ class NotificationRead(BaseModel):
 
 class TeamInviteCreate(BaseModel):
     email: EmailStr
+    name: str
     role: str = "employee"
 
 
@@ -168,9 +169,12 @@ class TeamInviteRead(BaseModel):
 
     model_config = {"from_attributes": True}
 
+    name: str | None = None
+
 
 class InviteInfo(BaseModel):
     email: EmailStr
     role: str
     team_name: str
     expires_at: datetime
+    name: str | None = None
