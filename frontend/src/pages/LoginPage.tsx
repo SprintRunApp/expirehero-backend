@@ -114,6 +114,7 @@ export default function LoginPage({ onLogin }) {
 
                 {/* LEFT BRAND PANEL */}
                 <div style={{
+                    
                     flex: 1,
                     padding: 56,
                     background: "linear-gradient(145deg, rgba(191,219,254,0.9), rgba(96,165,250,0.75))",
@@ -156,6 +157,7 @@ export default function LoginPage({ onLogin }) {
 
 
                     <div style={{
+                        
                         position: "absolute",
                         width: 240,
                         height: 240,
@@ -165,6 +167,8 @@ export default function LoginPage({ onLogin }) {
                         bottom: -60,
                         left: -60
                     }} />
+
+                    <DecorativeOverlay />
 
                     <div style={{
                         position: "absolute",
@@ -378,3 +382,150 @@ const googleButton = {
     fontSize: 15,
     cursor: "pointer"
 };
+
+
+function DecorativeOverlay() {
+    return (
+        <div style={{
+            position: "absolute",
+            inset: 0,
+            overflow: "hidden",
+            pointerEvents: "none"
+        }}>
+
+            {/* BIG BLUE GLOW */}
+            <div style={{
+                position: "absolute",
+                width: 280,
+                height: 280,
+                borderRadius: "50%",
+                background: "rgba(96,165,250,0.35)",
+                filter: "blur(80px)",
+                bottom: -80,
+                left: -80
+            }} />
+
+            {/* WHITE SOFT GLOW */}
+            <div style={{
+                position: "absolute",
+                width: 160,
+                height: 160,
+                borderRadius: "50%",
+                background: "rgba(255,255,255,0.35)",
+                filter: "blur(55px)",
+                top: 110,
+                right: 40
+            }} />
+
+            {/* ORANGE TINY WARM GLOW */}
+            <div style={{
+                position: "absolute",
+                width: 120,
+                height: 120,
+                borderRadius: "50%",
+                background: "rgba(255,170,80,0.18)",
+                filter: "blur(45px)",
+                bottom: 90,
+                right: 80
+            }} />
+
+            {/* SMALL DOTS */}
+            <GlowDot top={170} left={330} size={6} />
+            <GlowDot top={260} left={120} size={4} />
+            <GlowDot bottom={130} right={110} size={5} />
+            <GlowDot top={80} right={170} size={3} />
+
+            {/* SPARKLES */}
+            <Sparkle top={210} right={190} />
+            <Sparkle bottom={190} left={260} />
+            <Sparkle top={95} left={410} small />
+
+            {/* RINGS */}
+            <Ring top={70} left={80} size={52} />
+            <Ring bottom={70} right={45} size={74} />
+
+            {/* SOFT DIAGONAL LINE */}
+            <div style={{
+                position: "absolute",
+                width: 220,
+                height: 1,
+                background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent)",
+                transform: "rotate(-25deg)",
+                top: 330,
+                left: 40
+            }} />
+        </div>
+    );
+}
+
+function GlowDot({ top, left, right, bottom, size = 5 }) {
+    return (
+        <div style={{
+            position: "absolute",
+            top,
+            left,
+            right,
+            bottom,
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            background: "white",
+            boxShadow: "0 0 18px rgba(255,255,255,0.95)"
+        }} />
+    );
+}
+
+function Sparkle({ top, left, right, bottom, small = false }) {
+    const size = small ? 10 : 16;
+
+    return (
+        <div style={{
+            position: "absolute",
+            top,
+            left,
+            right,
+            bottom,
+            width: size,
+            height: size
+        }}>
+            <div style={{
+                position: "absolute",
+                top: "50%",
+                left: 0,
+                width: "100%",
+                height: 2,
+                background: "rgba(255,255,255,0.8)",
+                transform: "translateY(-50%)",
+                borderRadius: 999,
+                boxShadow: "0 0 12px rgba(255,255,255,0.8)"
+            }} />
+            <div style={{
+                position: "absolute",
+                left: "50%",
+                top: 0,
+                height: "100%",
+                width: 2,
+                background: "rgba(255,255,255,0.8)",
+                transform: "translateX(-50%)",
+                borderRadius: 999,
+                boxShadow: "0 0 12px rgba(255,255,255,0.8)"
+            }} />
+        </div>
+    );
+}
+
+function Ring({ top, left, right, bottom, size = 60 }) {
+    return (
+        <div style={{
+            position: "absolute",
+            top,
+            left,
+            right,
+            bottom,
+            width: size,
+            height: size,
+            borderRadius: "50%",
+            border: "1px solid rgba(255,255,255,0.32)"
+        }} />
+    );
+}
