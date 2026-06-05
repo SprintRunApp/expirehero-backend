@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     FREE_REMINDER_LIMIT: ClassVar[int] = 9999
     PRO_REMINDER_LIMIT: ClassVar[int | None] = None
 
+    RESEND_API_KEY: str = "demo"
+    RESEND_FROM_EMAIL: str = "ExpireHeroes <onboarding@resend.dev>"
+
 
 
     model_config = SettingsConfigDict(
