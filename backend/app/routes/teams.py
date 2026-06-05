@@ -133,10 +133,17 @@ def list_members(
 
 @router.post("/invite", response_model=TeamInviteRead)
 def invite_team_member(
+
+    
     payload: TeamInviteCreate,
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
+    
+    print("📨 INVITE PAYLOAD:", payload)
+    print("👤 CURRENT USER:", current_user.email)
+
+
     team = db.query(Team).filter(Team.owner_id == current_user.id).first()
 
     if not team:
@@ -177,6 +184,8 @@ def invite_team_member(
 
     invite_url = f"https://www.expireheros.app/invite/{token}"
 
+    print("📧 SENDING INVITE EMAIL TO:", payload.email)
+
     email_service.send_email(
         to_email=payload.email,
         subject="You were invited to ExpireHero",
@@ -194,6 +203,8 @@ This invitation expires in 7 days.
 – ExpireHero
 """
     )
+
+    print("✅ INVITE CREATED:", invite.id, invite.email, invite.name)
 
     return invite
 
