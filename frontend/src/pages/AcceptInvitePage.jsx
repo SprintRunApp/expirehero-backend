@@ -21,6 +21,10 @@ export default function AcceptInvitePage() {
     const loadInvite = async () => {
         try {
             const res = await api.get(`/teams/invite/${token}`);
+
+            console.log("INVITE DATA:", res.data);
+            alert(JSON.stringify(res.data, null, 2));
+            
             setInvite(res.data);
         } catch (e) {
             setError(e.response?.data?.detail || "Invalid invitation");
