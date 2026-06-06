@@ -19,6 +19,9 @@ export default function AcceptInvitePage() {
     }, []);
 
     const loadInvite = async () => {
+
+        console.log("🔥 LOAD INVITE STARTED");
+        
         try {
             const res = await api.get(`/teams/invite/${token}`);
 
