@@ -14,27 +14,27 @@ export default function AcceptInvitePage() {
     const [accepted, setAccepted] = useState(false);
     const [error, setError] = useState("");
 
-    useEffect(() => {
-        loadInvite();
-    }, []);
-
     const loadInvite = async () => {
-
         console.log("🔥 LOAD INVITE STARTED");
-        
+
         try {
             const res = await api.get(`/teams/invite/${token}`);
 
             console.log("INVITE DATA:", res.data);
             alert(JSON.stringify(res.data, null, 2));
-            
+
             setInvite(res.data);
         } catch (e) {
+            console.error("LOAD INVITE ERROR:", e);
             setError(e.response?.data?.detail || "Invalid invitation");
         } finally {
             setLoading(false);
         }
     };
+
+    useEffect(() => {
+        loadInvite();
+    }, [token]);
 
     const createBackendProfile = async (firebaseToken) => {
         await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
