@@ -4,6 +4,9 @@ import api from "../lib/api";
 import { registerWithEmail, loginWithEmail } from "../auth";
 
 export default function AcceptInvitePage() {
+
+    console.log("🔥 ACCEPT INVITE COMPONENT LOADED");
+    
     const { token } = useParams();
 
     const [invite, setInvite] = useState(null);
