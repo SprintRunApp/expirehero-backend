@@ -35,10 +35,10 @@ def me_post(
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user)
 ):
-    # 🔥 jeśli user nie ma teamu → twórz
-    # 🔥 CREATE TEAM (jeśli brak)
-    if not current_user.owned_team and not current_user.team_membership:
+    if payload.full_name:
+        current_user.name = payload.full_name
 
+    if not current_user.owned_team and not current_user.team_membership:
         team_name = payload.company_name or current_user.name or "My Team"
 
         team = Team(
@@ -47,12 +47,9 @@ def me_post(
         )
 
         db.add(team)
-        db.commit()
 
-        # 🔥 UPDATE TEAM NAME (JEŚLI PODANY COMPANY)
-        if payload.company_name and current_user.owned_team:
-            current_user.owned_team.name = payload.company_name
-            db.commit()
+    db.commit()
+    db.refresh(current_user)
 
     return current_user
 
