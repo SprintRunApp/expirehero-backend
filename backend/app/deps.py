@@ -1,15 +1,25 @@
 from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from .firebase_auth import verify_firebase_token
 from .db import get_db
-from .models import UserProfile
-from .models import Team
-
+from .models import UserProfile, Team
 
 
 security = HTTPBearer()
+
+
+def load_user_with_relations(db: Session, user_id: str):
+    return (
+        db.query(UserProfile)
+        .options(
+            joinedload(UserProfile.owned_team),
+            joinedload(UserProfile.team_membership)
+        )
+        .filter(UserProfile.id == user_id)
+        .first()
+    )
 
 
 def get_current_user(
@@ -25,41 +35,31 @@ def get_current_user(
     firebase_uid = decoded["uid"]
     email = decoded.get("email")
 
-    from sqlalchemy.orm import joinedload
-
     user = (
         db.query(UserProfile)
         .options(
             joinedload(UserProfile.owned_team),
             joinedload(UserProfile.team_membership)
         )
-    .filter(UserProfile.firebase_uid == firebase_uid)
-    .first()
+        .filter(UserProfile.firebase_uid == firebase_uid)
+        .first()
     )
 
-    # 🔥 AUTO TEAM (only for owner)
-    if user and not user.owned_team and not user.team_membership:
-        team_name = user.email.split("@")[0] + "'s Team"
-
-        team = Team(
-            name=team_name,
-            owner_id=user.id
-        )
-
-        db.add(team)
-        db.commit()
-        db.refresh(team)
-
-        # 🔥 odśwież usera żeby miał team
+    if not user and email:
         user = (
             db.query(UserProfile)
             .options(
                 joinedload(UserProfile.owned_team),
                 joinedload(UserProfile.team_membership)
             )
-            .filter(UserProfile.id == user.id)
+            .filter(UserProfile.email == email)
             .first()
         )
+
+        if user:
+            user.firebase_uid = firebase_uid
+            db.commit()
+            user = load_user_with_relations(db, user.id)
 
     if not user:
         user = UserProfile(
@@ -69,5 +69,6 @@ def get_current_user(
         db.add(user)
         db.commit()
         db.refresh(user)
+        user = load_user_with_relations(db, user.id)
 
     return user
