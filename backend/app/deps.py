@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session, joinedload
 
 from .firebase_auth import verify_firebase_token
 from .db import get_db
-from .models import UserProfile, Team
+from .models import UserProfile
 
 
 security = HTTPBearer()
