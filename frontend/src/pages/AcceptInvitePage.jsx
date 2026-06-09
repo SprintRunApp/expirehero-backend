@@ -40,7 +40,10 @@ export default function AcceptInvitePage() {
     }, [token]);
 
     const createBackendProfile = async (firebaseToken) => {
-        await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
+        console.log("API URL:", import.meta.env.VITE_API_URL);
+        console.log("CREATE BACKEND PROFILE STARTED");
+
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${firebaseToken}`,
@@ -51,6 +54,15 @@ export default function AcceptInvitePage() {
                 company_name: null
             })
         });
+
+        console.log("AUTH ME STATUS:", res.status);
+        console.log("AUTH ME TEXT:", await res.clone().text());
+
+        if (!res.ok) {
+            throw new Error("Backend profile creation failed");
+        }
+
+        return await res.json();
     };
 
     const finishInvite = async (firebaseToken) => {
