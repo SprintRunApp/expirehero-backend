@@ -68,13 +68,21 @@ export default function AcceptInvitePage() {
     const finishInvite = async (firebaseToken) => {
         localStorage.setItem("token", firebaseToken);
 
-        await api.post(`/teams/invite/${token}/accept`);
+        try {
+            const res = await api.post(`/teams/invite/${token}/accept`);
+            console.log("ACCEPT INVITE RESPONSE:", res.data);
 
-        setAccepted(true);
+            setAccepted(true);
 
-        setTimeout(() => {
-            window.location.href = "/";
-        }, 1200);
+            setTimeout(() => {
+                window.location.href = "/";
+            }, 1200);
+        } catch (e) {
+            console.error("ACCEPT INVITE ERROR:", e);
+            console.error("STATUS:", e.response?.status);
+            console.error("DATA:", e.response?.data);
+            alert(JSON.stringify(e.response?.data, null, 2));
+        }
     };
 
     const handleRegister = async () => {
