@@ -50,8 +50,7 @@ export default function AcceptInvitePage() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                full_name: invite.name,
-                company_name: null
+                full_name: invite.name
             })
         });
 

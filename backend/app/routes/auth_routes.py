@@ -38,7 +38,7 @@ def me_post(
     if payload.full_name:
         current_user.name = payload.full_name
 
-    if not current_user.owned_team and not current_user.team_membership:
+    if payload.company_name and not current_user.owned_team and not current_user.team_membership:
         team_name = payload.company_name or current_user.name or "My Team"
 
         team = Team(
