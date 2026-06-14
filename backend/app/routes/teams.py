@@ -277,6 +277,10 @@ def accept_invite(
     if invite.expires_at < datetime.utcnow():
         raise HTTPException(status_code=400, detail="Invite expired")
 
+    print("🔥 ACCEPT INVITE USER:", current_user.id, current_user.email)
+    print("🔥 OWNED TEAM:", current_user.owned_team)
+    print("🔥 TEAM MEMBERSHIP:", current_user.team_membership)
+
     # ❌ user already in team
     if current_user.owned_team or current_user.team_membership:
         raise HTTPException(
