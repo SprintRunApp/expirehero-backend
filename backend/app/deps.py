@@ -72,3 +72,18 @@ def get_current_user(
         user = load_user_with_relations(db, user.id)
 
     return user
+
+
+def get_current_team(
+    current_user: UserProfile = Depends(get_current_user)
+):
+    if current_user.owned_team:
+        return current_user.owned_team
+
+    if current_user.team_membership:
+        return current_user.team_membership.team
+
+    raise HTTPException(
+        status_code=403,
+        detail="You are not assigned to a company"
+    )

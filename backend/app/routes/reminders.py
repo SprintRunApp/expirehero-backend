@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from ..db import get_db
-from ..deps import get_current_user
-from ..models import Item, Reminder, UserProfile, Notification
+from ..deps import get_current_user, get_current_team
+from ..models import Item, Reminder, UserProfile, Notification, Team
 from ..schemas import ReminderCreate, ReminderRead, ReminderUpdate, ReminderWithItem, NotificationRead
 from ..services.reminder_status import compute_days_left, compute_ui_status
 from ..services.plan_limits import check_reminder_limit
@@ -79,7 +79,8 @@ def list_reminders(
 def create_reminder(
     payload: ReminderCreate,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team)
 ):
     
     if not check_reminder_limit(db, current_user):

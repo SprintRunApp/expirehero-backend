@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from ..db import get_db
-from ..deps import get_current_user
-from ..models import Item, UserProfile
+from ..deps import get_current_user, get_current_team
+from ..models import Item, UserProfile, Team
 from ..schemas import ItemCreate, ItemRead, ItemUpdate
 from ..services.team_access import item_access_filter, get_user_team_id
 
@@ -28,9 +28,10 @@ def list_items(
 def create_item(
     payload: ItemCreate,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team)
 ):
-    team_id = get_user_team_id(current_user)
+    team_id = team.id
 
     item = Item(
         owner_id=current_user.id,
