@@ -83,6 +83,18 @@ export default function TeamPanel() {
         }
     };
 
+    const removeMember = async (memberId) => {
+        if (!window.confirm("Remove this member from the team?")) return;
+
+        try {
+            await api.delete(`/teams/members/${memberId}`);
+            alert("Member removed ✅");
+            load();
+        } catch (e) {
+            alert(e.response?.data?.detail || "Error removing member");
+        }
+    };
+
     const pendingInvites = invites.filter(i => !i.accepted);
     const acceptedInvites = invites.filter(i => i.accepted);
 
@@ -287,26 +299,59 @@ export default function TeamPanel() {
             )}
 
             {members.map(m => (
-                <div key={m.id} style={{
-                    background: "white",
-                    padding: 12,
-                    marginBottom: 10,
-                    borderRadius: 8,
-                    display: "flex",
-                    justifyContent: "space-between"
-                }}>
+                <div
+                    key={m.id}
+                    style={{
+                        background: "white",
+                        padding: 12,
+                        marginBottom: 10,
+                        borderRadius: 8,
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center"
+                    }}
+            >
+                <div>
                     <div>{m.email}</div>
+                </div>
 
-                    <div style={{
-                        fontSize: 12,
-                        background: "#e0e7ff",
-                        padding: "4px 8px",
-                        borderRadius: 6
-                    }}>
+                <div
+                    style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center"
+                    }}
+                >
+                    <div
+                        style={{
+                            fontSize: 12,
+                            background: "#e0e7ff",
+                            padding: "4px 8px",
+                            borderRadius: 6
+                        }}
+                    >
                         {m.role}
                     </div>
+
+                    {isOwner && (
+                        <button
+                            onClick={() => removeMember(m.id)}
+                            style={{
+                                fontSize: 12,
+                                background: "#fee2e2",
+                                color: "#991b1b",
+                                border: "none",
+                                padding: "5px 9px",
+                                borderRadius: 6,
+                                cursor: "pointer"
+                            }}
+                        >
+                            Remove
+                        </button>
+                    )}
                 </div>
-            ))}
-        </div>
+            </div>
+        ))}
+    </div>
     );
 }
