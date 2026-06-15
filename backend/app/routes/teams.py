@@ -217,7 +217,10 @@ def list_team_invites(
     team = db.query(Team).filter(Team.owner_id == current_user.id).first()
 
     if not team:
-        raise HTTPException(status_code=403, detail="Only manager can view invites")
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owner can send invitations"
+        )
 
     invites = (
         db.query(TeamInvite)
