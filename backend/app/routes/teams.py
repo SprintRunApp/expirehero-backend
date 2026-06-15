@@ -234,6 +234,44 @@ def list_team_invites(
 
     return invites
 
+
+@router.delete("/invite/{invite_id}")
+def cancel_invite(
+    invite_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    team = db.query(Team).filter(Team.owner_id == current_user.id).first()
+
+    if not team:
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owner can cancel invitations"
+        )
+
+    invite = (
+        db.query(TeamInvite)
+        .filter(
+            TeamInvite.id == invite_id,
+            TeamInvite.team_id == team.id
+        )
+        .first()
+    )
+
+    if not invite:
+        raise HTTPException(status_code=404, detail="Invite not found")
+
+    if invite.accepted:
+        raise HTTPException(
+            status_code=400,
+            detail="Accepted invitation cannot be cancelled"
+        )
+
+    db.delete(invite)
+    db.commit()
+
+    return {"message": "Invitation cancelled"}
+
 @router.get("/invite/{token}", response_model=InviteInfo)
 def get_invite_info(
     token: str,
