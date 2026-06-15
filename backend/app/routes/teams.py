@@ -131,6 +131,43 @@ def list_members(
 
     return result
 
+@router.delete("/members/{member_id}")
+def remove_member(
+    member_id: int,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user)
+):
+    team = db.query(Team).filter(Team.owner_id == current_user.id).first()
+
+    if not team:
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owner can remove members"
+        )
+
+    member = (
+        db.query(TeamMember)
+        .filter(
+            TeamMember.id == member_id,
+            TeamMember.team_id == team.id
+        )
+        .first()
+    )
+
+    if not member:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if member.user_id == current_user.id:
+        raise HTTPException(
+            status_code=400,
+            detail="Owner cannot remove themselves"
+        )
+
+    db.delete(member)
+    db.commit()
+
+    return {"message": "Member removed"}
+
 @router.post("/invite", response_model=TeamInviteRead)
 def invite_team_member(
 
