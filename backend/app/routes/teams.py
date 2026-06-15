@@ -147,10 +147,10 @@ def invite_team_member(
     team = db.query(Team).filter(Team.owner_id == current_user.id).first()
 
     if not team:
-    raise HTTPException(
-        status_code=403,
-        detail="Only team owner can send invitations"
-    )
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owner can send invitations"
+        )
 
     if payload.role not in ["manager", "employee"]:
         raise HTTPException(status_code=400, detail="Invalid role")
