@@ -31,6 +31,7 @@ export default function Dashboard({ user }) {
     const [items, setItems] = useState([]);
     const [showForm, setShowForm] = useState(false);
     const [view, setView] = useState("dashboard");
+    const [team, setTeam] = useState(null);
 
     const [notificationModal, setNotificationModal] = useState(null);
     const [notificationHistory, setNotificationHistory] = useState([]);
@@ -54,8 +55,18 @@ export default function Dashboard({ user }) {
         }
     };
 
+    const loadTeam = async () => {
+        try {
+            const res = await api.get("/teams/me");
+            setTeam(res.data);
+        } catch (e) {
+            setTeam(null);
+        }
+    };
+
     useEffect(() => {
         load();
+        loadTeam();
     }, []);
 
     const remove = async (id) => {
@@ -147,29 +158,42 @@ export default function Dashboard({ user }) {
                                 alignItems: "center",
                                 marginBottom: 40
                             }}>
-                                <button
-                                    onClick={() => setShowForm(!showForm)}
-                                    style={{
-                                        background: "linear-gradient(135deg, #3b82f6, #60a5fa)",
-                                        color: "white",
-                                        padding: "14px 28px",
+                               {team ? (
+                                    <button
+                                        onClick={() => setShowForm(!showForm)}
+                                        style={{
+                                            background: "linear-gradient(135deg, #3b82f6, #60a5fa)",
+                                            color: "white",
+                                            padding: "14px 28px",
+                                            borderRadius: 999,
+                                            border: "none",
+                                            fontWeight: 600,
+                                            fontSize: 14,
+                                            cursor: "pointer",
+                                            boxShadow: "0 10px 30px rgba(59,130,246,0.5)",
+                                            transition: "0.2s"
+                                        }}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.transform = "scale(1.05)";
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.transform = "scale(1)";
+                                        }}
+                                    >
+                                        + Add Reminder
+                                    </button>
+                                ) : (
+                                    <div style={{
+                                        background: "#eef2ff",
+                                        color: "#475569",
+                                        padding: "12px 16px",
                                         borderRadius: 999,
-                                        border: "none",
-                                        fontWeight: 600,
                                         fontSize: 14,
-                                        cursor: "pointer",
-                                        boxShadow: "0 10px 30px rgba(59,130,246,0.5)",
-                                        transition: "0.2s"
-                                    }}
-                                    onMouseEnter={(e) => {
-                                        e.currentTarget.style.transform = "scale(1.05)";
-                                    }}
-                                    onMouseLeave={(e) => {
-                                        e.currentTarget.style.transform = "scale(1)";
-                                    }}
-                                >
-                                    + Add Reminder
-                                </button>
+                                        fontWeight: 600
+                                    }}>
+                                        You are not assigned to a company
+                                    </div>
+                                )}
 
                                 <div style={{
                                     display: "flex",
@@ -181,7 +205,7 @@ export default function Dashboard({ user }) {
                                 </div>
                             </div>
 
-                            {showForm && (
+                            {showForm && team && (
                                 <div style={{ marginBottom: 30 }}>
                                     <QuickReminder
                                         onAdded={() => {

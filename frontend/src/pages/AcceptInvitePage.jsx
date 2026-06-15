@@ -16,6 +16,7 @@ export default function AcceptInvitePage() {
     const [busy, setBusy] = useState(false);
     const [accepted, setAccepted] = useState(false);
     const [error, setError] = useState("");
+    const [notice, setNotice] = useState("");
 
     const loadInvite = async () => {
         console.log("🔥 LOAD INVITE STARTED");
@@ -100,10 +101,17 @@ export default function AcceptInvitePage() {
 
         } catch (e) {
             console.error(e);
+
+                if (e.code === "auth/email-already-in-use" || e.message?.includes("email-already-in-use")) {
+                setNotice("This email already has an account. Please use “Sign in & accept”.");
+                setMode("login");
+                return;
+            }
+
             alert(e.message || "Cannot create account");
         } finally {
             setBusy(false);
-        }
+        }   
     };
 
     const handleLogin = async () => {
@@ -177,6 +185,20 @@ export default function AcceptInvitePage() {
                     style={inputStyle}
                 />
 
+                {notice && (
+                    <div style={{
+                        background: "#eff6ff",
+                        color: "#1d4ed8",
+                        padding: "12px 14px",
+                        borderRadius: 10,
+                        fontSize: 14,
+                        marginBottom: 12,
+                        border: "1px solid #bfdbfe"
+                    }}>
+                        {notice}
+                    </div>
+                )}
+
                 <button
                     onClick={mode === "register" ? handleRegister : handleLogin}
                     disabled={busy}
@@ -208,7 +230,10 @@ export default function AcceptInvitePage() {
                     {mode === "register" ? "Already have an account? " : "Need to create account? "}
 
                     <span
-                        onClick={() => setMode(mode === "register" ? "login" : "register")}
+                        onClick={() => {
+                            setNotice("");
+                            setMode(mode === "register" ? "login" : "register");
+                        }}
                         style={{
                             color: "#2563eb",
                             cursor: "pointer",
