@@ -71,6 +71,18 @@ export default function TeamPanel() {
         );
     }
 
+    const cancelInvite = async (inviteId) => {
+        if (!window.confirm("Cancel this invitation?")) return;
+
+        try {
+            await api.delete(`/teams/invite/${inviteId}`);
+            alert("Invitation cancelled ✅");
+            load();
+        } catch (e) {
+            alert(e.response?.data?.detail || "Error cancelling invitation");
+        }
+    };
+
     const pendingInvites = invites.filter(i => !i.accepted);
     const acceptedInvites = invites.filter(i => i.accepted);
 
@@ -186,13 +198,36 @@ export default function TeamPanel() {
                     </div>
 
                     <div style={{
-                        fontSize: 12,
-                        background: "#fef3c7",
-                        color: "#92400e",
-                        padding: "4px 8px",
-                        borderRadius: 6
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center"
                     }}>
-                        Not accepted yet
+                        <div style={{
+                            fontSize: 12,
+                            background: "#fef3c7",
+                            color: "#92400e",
+                            padding: "4px 8px",
+                            borderRadius: 6
+                        }}>
+                            Not accepted yet
+                        </div>
+
+                        {isOwner && (
+                            <button
+                                onClick={() => cancelInvite(invite.id)}
+                                style={{
+                                    fontSize: 12,
+                                    background: "#fee2e2",
+                                    color: "#991b1b",
+                                    border: "none",
+                                    padding: "5px 9px",
+                                    borderRadius: 6,
+                                    cursor: "pointer"
+                                }}
+                            >
+                                Cancel
+                            </button>
+                        )}
                     </div>
                 </div>
             ))}
