@@ -9,6 +9,7 @@ export default function TeamPanel() {
     const [name, setName] = useState("");
     const [role, setRole] = useState("employee");
     const [loading, setLoading] = useState(false);
+    const [isOwner, setIsOwner] = useState(false);
 
     const load = async () => {
         try {
@@ -16,6 +17,10 @@ export default function TeamPanel() {
             setTeam(t.data);
 
             if (t.data) {
+
+                const me = await api.get("/auth/me");
+                setIsOwner(me.data.id === t.data.owner_id);
+
                 const m = await api.get("/teams/members");
                 setMembers(m.data);
 
@@ -77,61 +82,74 @@ export default function TeamPanel() {
                 Invite and manage your team members
             </p>
 
-            <div style={{
-                display: "flex",
-                gap: 10,
-                marginBottom: 20
-            }}>
-                <input
-                    placeholder="Full name..."
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    style={{
-                        padding: 10,
-                        flex: 1,
-                        borderRadius: 6,
-                        border: "1px solid #ccc"
-                    }}
-                />
-                <input
-                    placeholder="Enter email..."
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    style={{
-                        padding: 10,
-                        flex: 1,
-                        borderRadius: 6,
-                        border: "1px solid #ccc"
-                    }}
-                />
+            {isOwner ? (
+                <div style={{
+                    display: "flex",
+                    gap: 10,
+                    marginBottom: 20
+                }}>
+                    <input
+                        placeholder="Full name..."
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        style={{
+                            padding: 10,
+                            flex: 1,
+                            borderRadius: 6,
+                            border: "1px solid #ccc"
+                        }}
+                    />
 
-                <select
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    style={{
-                        padding: 10,
-                        borderRadius: 6,
-                        border: "1px solid #ccc"
-                    }}
-                >
-                    <option value="employee">Employee</option>
-                    <option value="manager">Manager</option>
-                </select>
+                    <input
+                        placeholder="Enter email..."
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        style={{
+                            padding: 10,
+                            flex: 1,
+                            borderRadius: 6,
+                            border: "1px solid #ccc"
+                        }}
+                    />
 
-                <button
-                    onClick={invite}
-                    disabled={loading}
-                    style={{
-                        background: "#3b82f6",
-                        color: "white",
-                        padding: "10px 15px",
-                        borderRadius: 6,
-                        border: "none"
-                    }}
-                >
-                    {loading ? "..." : "Invite"}
-                </button>
-            </div>
+                    <select
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                        style={{
+                            padding: 10,
+                            borderRadius: 6,
+                            border: "1px solid #ccc"
+                        }}
+                    >
+                        <option value="employee">Employee</option>
+                        <option value="manager">Manager</option>
+                    </select>
+
+                    <button
+                        onClick={invite}
+                        disabled={loading}
+                        style={{
+                            background: "#3b82f6",
+                            color: "white",
+                            padding: "10px 15px",
+                            borderRadius: 6,
+                            border: "none"
+                        }}
+                    >
+                        {loading ? "..." : "Invite"}
+                    </button>
+                </div>
+            ) : (
+                <div style={{
+                    background: "#eef2ff",
+                    color: "#475569",
+                    padding: 14,
+                    borderRadius: 10,
+                    marginBottom: 20
+                }}>
+                    You are a team member. Only the team owner can invite new people.
+                </div>
+            )}
 
             <h3 style={{ marginTop: 30 }}>Pending invitations</h3>
 
