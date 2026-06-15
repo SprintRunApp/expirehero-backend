@@ -161,88 +161,254 @@ export default function AcceptInvitePage() {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            background: "#f8fafc"
+            background:
+                "linear-gradient(135deg, #eef5ff 0%, #dbeafe 100%)",
+            padding: 30
         }}>
             <div style={{
+                width: 1100,
+                maxWidth: "95%",
+                minHeight: 700,
                 background: "white",
-                padding: 40,
-                borderRadius: 20,
-                width: 440,
-                boxShadow: "0 20px 50px rgba(0,0,0,0.08)"
+                borderRadius: 28,
+                overflow: "hidden",
+                display: "flex",
+                boxShadow:
+                    "0 30px 80px rgba(59,130,246,0.18)"
             }}>
-                <h2 style={{ marginBottom: 20 }}>Accept Team Invitation</h2>
 
-                <ReadonlyInput label="Company" value={invite.team_name} />
-                <ReadonlyInput label="Full name" value={invite.name || ""} />
-                <ReadonlyInput label="Email" value={invite.email} />
-                <ReadonlyInput label="Role" value={invite.role} />
-
-                <input
-                    type="password"
-                    placeholder={mode === "register" ? "Create password" : "Password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    style={inputStyle}
-                />
-
-                {notice && (
-                    <div style={{
-                        background: "#eff6ff",
-                        color: "#1d4ed8",
-                        padding: "12px 14px",
-                        borderRadius: 10,
-                        fontSize: 14,
-                        marginBottom: 12,
-                        border: "1px solid #bfdbfe"
-                    }}>
-                        {notice}
-                    </div>
-                )}
-
-                <button
-                    onClick={mode === "register" ? handleRegister : handleLogin}
-                    disabled={busy}
-                    style={{
-                        width: "100%",
-                        padding: 14,
-                        borderRadius: 10,
-                        border: "none",
-                        background: "#2563eb",
-                        color: "white",
-                        fontWeight: 600,
-                        cursor: "pointer",
-                        marginTop: 10
-                    }}
-                >
-                    {busy
-                        ? "Please wait..."
-                        : mode === "register"
-                            ? "Create account & accept"
-                            : "Sign in & accept"}
-                </button>
-
+                {/* LEFT PANEL */}
                 <div style={{
-                    marginTop: 20,
-                    textAlign: "center",
-                    color: "#64748b",
-                    fontSize: 14
+                    width: "42%",
+                    position: "relative",
+                    overflow: "hidden",
+                    padding: 50,
+                    background:
+                        "linear-gradient(145deg,#dbeafe 0%,#93c5fd 100%)"
                 }}>
-                    {mode === "register" ? "Already have an account? " : "Need to create account? "}
 
-                    <span
-                        onClick={() => {
-                            setNotice("");
-                            setMode(mode === "register" ? "login" : "register");
-                        }}
+                    <img
+                        src="/logo.png"
                         style={{
-                            color: "#2563eb",
+                            width: 260,
+                            marginBottom: 70
+                        }}
+                    />
+
+                    <h1 style={{
+                        fontSize: 48,
+                        lineHeight: 1.15,
+                        margin: 0,
+                        color: "#0f172a"
+                    }}>
+                        You've been invited
+                        <br />
+                        to join
+                        <br />
+                        <span style={{
+                            color: "#2563eb"
+                        }}>
+                            {invite.team_name}
+                        </span>
+                    </h1>
+
+                    <p style={{
+                        marginTop: 24,
+                        fontSize: 18,
+                        lineHeight: 1.7,
+                        color: "#475569",
+                        maxWidth: 320
+                    }}>
+                        Complete your account and start
+                        collaborating with your team.
+                    </p>
+
+                    {/* Glow */}
+                    <div style={{
+                        position: "absolute",
+                        width: 260,
+                        height: 260,
+                        borderRadius: "50%",
+                        background: "rgba(255,255,255,0.35)",
+                        filter: "blur(80px)",
+                        bottom: -60,
+                        left: -60
+                    }} />
+
+                    {/* Sparkles */}
+                    <div style={{
+                        position: "absolute",
+                        top: 120,
+                        right: 90,
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background: "#fff",
+                        boxShadow: "0 0 20px white"
+                    }} />
+
+                    <div style={{
+                        position: "absolute",
+                        top: 220,
+                        right: 140,
+                        width: 4,
+                        height: 4,
+                        borderRadius: "50%",
+                        background: "#fff",
+                        boxShadow: "0 0 12px white"
+                    }} />
+
+                </div>
+
+                {/* RIGHT PANEL */}
+                <div style={{
+                    flex: 1,
+                    padding: "60px"
+                }}>
+
+                    <div style={{
+                        display: "inline-flex",
+                        padding: "10px 18px",
+                        borderRadius: 999,
+                        background: "#eff6ff",
+                        color: "#2563eb",
+                        fontWeight: 600,
+                        marginBottom: 24
+                    }}>
+                        Employee Invitation
+                    </div>
+
+                    <h1 style={{
+                        margin: 0,
+                        fontSize: 46,
+                        color: "#0f172a"
+                    }}>
+                        Accept Team Invitation
+                    </h1>
+
+                    <p style={{
+                        marginTop: 16,
+                        marginBottom: 30,
+                        color: "#64748b",
+                        fontSize: 18
+                    }}>
+                        You've been invited by
+                        <strong> {invite.team_name}</strong>
+                        {" "}as{" "}
+                        <strong>{invite.role}</strong>.
+                    </p>
+
+                    <ReadonlyInput
+                        label="Company"
+                        value={invite.team_name}
+                    />
+
+                    <ReadonlyInput
+                        label="Full name"
+                        value={invite.name || ""}
+                    />
+
+                    <ReadonlyInput
+                        label="Email"
+                        value={invite.email}
+                    />
+
+                    <ReadonlyInput
+                        label="Role"
+                        value={invite.role}
+                    />
+
+                    <input
+                        type="password"
+                        placeholder={
+                            mode === "register"
+                                ? "Create password"
+                                : "Password"
+                        }
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        style={{
+                            ...inputStyle,
+                            height: 64,
+                            borderRadius: 18
+                        }}
+                    />
+
+                    {notice && (
+                        <div style={{
+                            background: "#eff6ff",
+                            color: "#1d4ed8",
+                            padding: "12px 16px",
+                            borderRadius: 12,
+                            marginBottom: 14,
+                            border: "1px solid #bfdbfe"
+                        }}>
+                            {notice}
+                        </div>
+                    )}
+
+                    <button
+                        onClick={
+                            mode === "register"
+                                ? handleRegister
+                                : handleLogin
+                        }
+                        disabled={busy}
+                        style={{
+                            width: "100%",
+                            height: 58,
+                            borderRadius: 999,
+                            border: "none",
                             cursor: "pointer",
-                            fontWeight: 600
+                            color: "white",
+                            fontWeight: 700,
+                            fontSize: 17,
+                            marginTop: 10,
+                            background:
+                                "linear-gradient(90deg,#3b82f6,#60a5fa)",
+                            boxShadow:
+                                "0 10px 30px rgba(59,130,246,0.35)"
                         }}
                     >
-                        {mode === "register" ? "Sign in" : "Create account"}
-                    </span>
+                        {busy
+                            ? "Please wait..."
+                            : mode === "register"
+                                ? "Create account & join team"
+                                : "Sign in & join team"}
+                    </button>
+
+                    <div style={{
+                        marginTop: 24,
+                        textAlign: "center",
+                        color: "#64748b"
+                    }}>
+                        {mode === "register"
+                            ? "Already have an account? "
+                            : "Need to create account? "}
+
+                        <span
+                            onClick={() => {
+                                setNotice("");
+                                setMode(
+                                    mode === "register"
+                                        ? "login"
+                                        : "register"
+                                );
+                            }}
+                            style={{
+                                color: "#2563eb",
+                                fontWeight: 600,
+                                cursor: "pointer"
+                            }}
+                        >
+                            {mode === "register"
+                                ? "Sign in"
+                                : "Create account"}
+                        </span>
+                    </div>
+
                 </div>
+
             </div>
         </div>
     );
@@ -266,9 +432,11 @@ function ReadonlyInput({ label, value }) {
 const inputStyle = {
     width: "100%",
     boxSizing: "border-box",
-    padding: "14px 16px",
-    borderRadius: 12,
+    padding: "18px 20px",
+    borderRadius: 18,
     border: "1px solid #dbeafe",
-    marginBottom: 14,
-    fontSize: 15
+    marginBottom: 16,
+    fontSize: 16,
+    background: "#ffffff",
+    color: "#334155"
 };
