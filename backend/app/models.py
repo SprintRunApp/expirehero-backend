@@ -148,6 +148,9 @@ class Team(Base):
     owner_id = Column(String, ForeignKey("user_profiles.id"), nullable=False, unique=True)
 
     plan = Column(String(32), nullable=False, default="pending")
+    industry = Column(String(64), nullable=True)
+    region = Column(String(16), nullable=True)
+
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
 

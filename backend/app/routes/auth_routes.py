@@ -20,6 +20,8 @@ router = APIRouter()
 class AuthPayload(BaseModel):
     full_name: str | None = None
     company_name: str | None = None
+    industry: str | None = None
+    region: str | None = None
 
 
 # ✅ STANDARDOWE /me (GET)
@@ -48,7 +50,9 @@ def me_post(
 
         team = Team(
             name=team_name,
-            owner_id=current_user.id
+            owner_id=current_user.id,
+            industry=payload.industry,
+            region=payload.region
         )
 
         db.add(team)
