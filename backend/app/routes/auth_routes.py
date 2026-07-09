@@ -40,22 +40,26 @@ def me_post(
     if payload.full_name:
         current_user.name = payload.full_name
 
-    print("AUTH ME PAYLOAD:", payload)
-    print("COMPANY NAME:", payload.company_name)
-    print("USER OWNED TEAM:", current_user.owned_team)
-    print("USER MEMBERSHIP:", current_user.team_membership)
+        # New owner: create a team and save onboarding choices.
+        if payload.company_name and not current_user.owned_team and not current_user.team_membership:
+            team_name = payload.company_name or current_user.name or "My Team"
 
-    if payload.company_name and not current_user.owned_team and not current_user.team_membership:
-        team_name = payload.company_name or current_user.name or "My Team"
+            team = Team(
+                name=team_name,
+                owner_id=current_user.id,
+                industry=payload.industry,
+                region=payload.region
+            )
+            db.add(team)
+            db.flush()
 
-        team = Team(
-            name=team_name,
-            owner_id=current_user.id,
-            industry=payload.industry,
-            region=payload.region
-        )
+        # Existing owner: fill onboarding fields only if they are still empty.
+        if current_user.owned_team:
+            if payload.industry and not current_user.owned_team.industry:
+                current_user.owned_team.industry = payload.industry
 
-        db.add(team)
+            if payload.region and not current_user.owned_team.region:
+                current_user.owned_team.region = payload.region
 
     db.commit()
     db.refresh(current_user)
