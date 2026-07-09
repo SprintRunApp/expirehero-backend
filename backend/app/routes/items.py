@@ -6,6 +6,7 @@ from ..deps import get_current_user, get_current_team
 from ..models import Item, UserProfile, Team
 from ..schemas import ItemCreate, ItemRead, ItemUpdate
 from ..services.team_access import item_access_filter, get_user_team_id
+from ..services.team_limits import has_active_plan
 
 router = APIRouter()
 
@@ -32,6 +33,12 @@ def create_item(
     team: Team = Depends(get_current_team)
 ):
     team_id = team.id
+
+    if not has_active_plan(team):
+        raise HTTPException(
+            status_code=403,
+            detail="Active subscription required."
+        )
 
     item = Item(
         owner_id=current_user.id,

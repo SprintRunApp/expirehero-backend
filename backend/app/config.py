@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     stripe_webhook_secret: str = "demo"
     frontend_url: str = "http://localhost:5173"
 
+    stripe_starter_price_id: str = "demo"
+    stripe_pro_price_id: str = "demo"
+    stripe_business_price_id: str = "demo"
+
     # ✅ STAŁE (nie pola Pydantic)
     FREE_REMINDER_LIMIT: ClassVar[int] = 9999
     PRO_REMINDER_LIMIT: ClassVar[int | None] = None

@@ -147,6 +147,10 @@ class Team(Base):
 
     owner_id = Column(String, ForeignKey("user_profiles.id"), nullable=False, unique=True)
 
+    plan = Column(String(32), nullable=False, default="pending")
+    stripe_customer_id = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     owner = relationship("UserProfile", back_populates="owned_team")

@@ -18,6 +18,9 @@ from ..schemas import (
 )
 from app.services.email_service import email_service
 
+from ..services.team_limits import can_add_member
+
+
 router = APIRouter()
 
 
@@ -74,6 +77,12 @@ def add_member(
         raise HTTPException(status_code=403, detail="Not a team owner")
 
     team = current_user.owned_team
+
+    if not can_add_member(team):
+        raise HTTPException(
+            status_code=403,
+            detail="Team member limit reached for your subscription plan."
+        )
 
     # 🔍 znajdź usera po emailu
     user = db.query(UserProfile).filter(UserProfile.email == payload.email).first()
@@ -187,6 +196,12 @@ def invite_team_member(
         raise HTTPException(
             status_code=403,
             detail="Only team owner can send invitations"
+        )
+    
+    if not can_add_member(team):
+        raise HTTPException(
+            status_code=403,
+            detail="Team member limit reached for your subscription plan."
         )
 
     if payload.role not in ["manager", "employee"]:
@@ -374,6 +389,17 @@ def accept_invite(
         raise HTTPException(
             status_code=403,
             detail="This invite belongs to another email"
+        )
+    
+    team = db.query(Team).filter(Team.id == invite.team_id).first()
+
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    if not can_add_member(team):
+        raise HTTPException(
+            status_code=403,
+            detail="Team member limit reached for this subscription plan."
         )
 
     member = TeamMember(

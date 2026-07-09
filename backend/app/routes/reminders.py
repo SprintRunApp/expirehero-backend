@@ -9,6 +9,7 @@ from ..schemas import ReminderCreate, ReminderRead, ReminderUpdate, ReminderWith
 from ..services.reminder_status import compute_days_left, compute_ui_status
 from ..services.plan_limits import check_reminder_limit
 from ..services.team_access import item_access_filter
+from ..services.team_limits import has_active_plan
 
 
 router = APIRouter()
@@ -83,10 +84,16 @@ def create_reminder(
     team: Team = Depends(get_current_team)
 ):
     
+    if not has_active_plan(team):
+        raise HTTPException(
+            status_code=403,
+            detail="Active subscription required."
+        )
+    
     if not check_reminder_limit(db, current_user):
         raise HTTPException(
             status_code=403,
-            detail="Free plan limit reached. Upgrade to PRO."
+            detail="Reminder limit reached for your subscription plan."
         )
 
     item_id = str(payload.item_id)

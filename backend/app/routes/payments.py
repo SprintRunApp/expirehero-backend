@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from ..deps import get_current_user
 from ..services.stripe_service import create_checkout_session
@@ -6,9 +7,32 @@ from ..services.stripe_service import create_checkout_session
 router = APIRouter()
 
 
-@router.post("/create-checkout-session")
-def create_session(current_user = Depends(get_current_user)):
+class CheckoutRequest(BaseModel):
+    plan: str
 
-    url = create_checkout_session(str(current_user.id))
+
+@router.post("/create-checkout-session")
+def create_session(
+    payload: CheckoutRequest,
+    current_user=Depends(get_current_user)
+):
+    team = current_user.owned_team
+
+    if not team:
+        raise HTTPException(
+            status_code=400,
+            detail="You need to create a company/team before subscribing."
+        )
+
+    if payload.plan not in ["starter", "pro", "business"]:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid plan."
+        )
+
+    url = create_checkout_session(
+        team_id=team.id,
+        plan=payload.plan
+    )
 
     return {"checkout_url": url}
