@@ -14,6 +14,16 @@ export default function LoginPage({ onLogin }) {
     const industryFromUrl = searchParams.get("industry");
     const isLoginPage = location.pathname === "/login";
 
+    const INDUSTRIES = {
+        construction: { label: "Construction", emoji: "🏗" },
+        transport: { label: "Transport", emoji: "🚛" },
+        production: { label: "Production", emoji: "🏭" }
+    };
+
+    const selectedIndustry = industryFromUrl
+        ? INDUSTRIES[industryFromUrl]
+        : null;
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [company, setCompany] = useState("");
@@ -234,15 +244,40 @@ export default function LoginPage({ onLogin }) {
                             marginBottom: 8,
                             color: "#0f172a"
                         }}>
-                            {mode === "register" ? "Create your account" : "Welcome back"}
+                            {mode === "register"
+                                ? selectedIndustry
+                                    ? `Set up ExpireHeros for ${selectedIndustry.label}`
+                                    : "Create your account"
+                                : "Welcome back"}
                         </h2>
+
+                        {mode === "register" && selectedIndustry && (
+                            <div style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 8,
+                                marginBottom: 16,
+                                padding: "8px 12px",
+                                borderRadius: 999,
+                                background: "#eff6ff",
+                                border: "1px solid #bfdbfe",
+                                color: "#1d4ed8",
+                                fontSize: 14,
+                                fontWeight: 700
+                            }}>
+                                <span>{selectedIndustry.emoji}</span>
+                                <span>{selectedIndustry.label}</span>
+                            </div>
+                        )}
 
                         <p style={{
                             color: "#64748b",
                             marginBottom: 32
                         }}>
                             {mode === "register"
-                                ? "Start managing important deadlines with ExpireHeros."
+                                ? selectedIndustry
+                                    ? `Choose your region and create your ${selectedIndustry.label.toLowerCase()} workspace.`
+                                    : "Start managing important deadlines with ExpireHeros."
                                 : "Sign in to continue to your dashboard."}
                         </p>
 
