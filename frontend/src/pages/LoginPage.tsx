@@ -5,12 +5,21 @@ import {
     registerWithEmail
 } from "../auth";
 
+import { useSearchParams, useLocation } from "react-router-dom";
+
 export default function LoginPage({ onLogin }) {
+    const [searchParams] = useSearchParams();
+    const location = useLocation();
+
+    const industryFromUrl = searchParams.get("industry");
+    const isLoginPage = location.pathname === "/login";
+
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [company, setCompany] = useState("");
     const [fullName, setFullName] = useState("");
-    const [mode, setMode] = useState("register");
+    const [mode, setMode] = useState(isLoginPage ? "login" : "register");
+    const [region, setRegion] = useState("EU");
 
     const callBackend = async (token, fullNameValue, companyValue) => {
         try {
@@ -22,7 +31,9 @@ export default function LoginPage({ onLogin }) {
                 },
                 body: JSON.stringify({
                     full_name: fullNameValue,
-                    company_name: companyValue
+                    company_name: companyValue,
+                    industry: industryFromUrl,
+                    region: region
                 })
             });
 
@@ -239,6 +250,28 @@ export default function LoginPage({ onLogin }) {
                             <>
                                 <Input label="Company name" value={company} onChange={setCompany} />
                                 <Input label="Full name" value={fullName} onChange={setFullName} />
+                                <div style={{ marginBottom: 16 }}>
+                                    <select
+                                        value={region}
+                                        onChange={(e) => setRegion(e.target.value)}
+                                        style={{
+                                            width: "100%",
+                                            boxSizing: "border-box",
+                                            background: "#f8fbff",
+                                            border: "1px solid #dbeafe",
+                                            borderRadius: 14,
+                                            padding: "15px 16px",
+                                            fontSize: 15,
+                                            outline: "none",
+                                            color: "#0f172a"
+                                        }}
+                                    >
+                                        <option value="EU">Europe</option>
+                                        <option value="US">United States</option>
+                                        <option value="UK">United Kingdom</option>
+                                        <option value="AU">Australia</option>
+                                    </select>
+                                </div>
                             </>
                         )}
 

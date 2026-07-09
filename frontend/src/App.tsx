@@ -5,6 +5,8 @@ import LoginPage from "./pages/LoginPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./lib/firebase";
+import LandingPage from "./pages/LandingPage";
+import IndustryLandingPage from "./pages/IndustryLandingPage";
 
 function App() {
   const [user, setUser] = useState<any>(null);
@@ -58,15 +60,35 @@ function App() {
 
         <Route
           path="/"
-          element={
-            user ? <Dashboard user={user} /> : <LoginPage onLogin={setUser} />
-          }
+          element={user ? <Dashboard user={user} /> : <LandingPage />}
         />
 
         <Route
-          path="*"
-          element={<Navigate to="/" replace />}
+          path="/construction"
+          element={<IndustryLandingPage industry="construction" />}
         />
+
+        <Route
+          path="/transport"
+          element={<IndustryLandingPage industry="transport" />}
+        />
+
+        <Route
+          path="/production"
+          element={<IndustryLandingPage industry="production" />}
+        />
+
+        <Route
+          path="/signup"
+          element={user ? <Dashboard user={user} /> : <LoginPage onLogin={setUser} />}
+        />
+
+        <Route
+          path="/login"
+          element={user ? <Dashboard user={user} /> : <LoginPage onLogin={setUser} />}
+        />
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
