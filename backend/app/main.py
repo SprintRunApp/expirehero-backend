@@ -4,8 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.db import Base, engine
-from app.routes import auth_routes, items, reminders
-from app.routes import teams
+from app.routes import auth_routes, items, reminders, teams, workflow_groups
 from app.routes import settings as settings_router
 from app.api import reminder_jobs
 
@@ -49,6 +48,11 @@ app.include_router(auth_routes.router, prefix="/api/auth", tags=["auth"])
 app.include_router(items.router, prefix="/api/items", tags=["items"])
 app.include_router(reminders.router, prefix="/api/reminders", tags=["reminders"])
 app.include_router(teams.router, prefix="/api/teams", tags=["Teams"])
+app.include_router(
+    workflow_groups.router,
+    prefix="/api/workflow-groups",
+    tags=["Workflow Groups"]
+)
 app.include_router(settings_router.router, prefix="/api/settings", tags=["Settings"])
 app.include_router(reminder_jobs.router, prefix="/jobs", tags=["jobs"])
 

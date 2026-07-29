@@ -178,3 +178,63 @@ class InviteInfo(BaseModel):
     team_name: str
     expires_at: datetime
     name: str | None = None
+
+
+class WorkflowGroupCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=255)
+    description: str | None = None
+    manager_user_id: str | None = None
+    active: bool = True
+
+
+class WorkflowGroupUpdate(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    description: str | None = None
+    manager_user_id: str | None = None
+    active: bool | None = None
+
+
+class WorkflowGroupRead(BaseModel):
+    id: UUID
+    team_id: int
+    name: str
+    description: str | None = None
+    manager_user_id: str | None = None
+    active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ExternalContactCreate(BaseModel):
+    company_name: str = Field(min_length=1, max_length=255)
+    contact_name: str | None = Field(default=None, max_length=255)
+    email: EmailStr | None = None
+    phone: str | None = Field(default=None, max_length=64)
+    notes: str | None = None
+    active: bool = True
+
+
+class ExternalContactUpdate(BaseModel):
+    company_name: str | None = Field(default=None, min_length=1, max_length=255)
+    contact_name: str | None = Field(default=None, max_length=255)
+    email: EmailStr | None = None
+    phone: str | None = Field(default=None, max_length=64)
+    notes: str | None = None
+    active: bool | None = None
+
+
+class ExternalContactRead(BaseModel):
+    id: UUID
+    team_id: int
+    company_name: str
+    contact_name: str | None = None
+    email: EmailStr | None = None
+    phone: str | None = None
+    notes: str | None = None
+    active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = {"from_attributes": True}

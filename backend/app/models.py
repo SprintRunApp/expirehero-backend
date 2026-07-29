@@ -68,6 +68,13 @@ class Item(Base):
     visibility: Mapped[str] = mapped_column(String(32), nullable=False, default="private")
     team_id: Mapped[int | None] = mapped_column(ForeignKey("teams.id"), nullable=True)
 
+    workflow_group_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("workflow_groups.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True
+    )
+
     assigned_user_id: Mapped[str | None] = mapped_column(
         String(36),
         ForeignKey("user_profiles.id"),
@@ -79,6 +86,10 @@ class Item(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     team: Mapped["Team | None"] = relationship("Team")
+    workflow_group: Mapped["WorkflowGroup | None"] = relationship(
+        "WorkflowGroup",
+        back_populates="items"
+    )
     owner: Mapped["UserProfile"] = relationship(
         back_populates="items",
         foreign_keys=[owner_id]
@@ -108,7 +119,11 @@ class Reminder(Base):
     due_date: Mapped[date] = mapped_column(Date, nullable=False)
     timezone: Mapped[str] = mapped_column(String(64), default="UTC", nullable=False)
     recurrence_months: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
-    advance_days: Mapped[list[int]] = mapped_column(JSON, default=[30, 7, 0], nullable=False)
+    advance_days: Mapped[list[int]] = mapped_column(
+        JSON,
+        default=lambda: [30, 7, 0],
+        nullable=False
+    )
     status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
@@ -204,3 +219,129 @@ class TeamInvite(Base):
 
     team = relationship("Team")
     invited_by = relationship("UserProfile")
+
+class WorkflowGroup(Base):
+    __tablename__ = "workflow_groups"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=uuid_str
+    )
+
+    team_id: Mapped[int] = mapped_column(
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    description: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    manager_user_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("user_profiles.id"),
+        nullable=True,
+        index=True
+    )
+
+    active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    team: Mapped["Team"] = relationship("Team")
+
+    manager: Mapped["UserProfile | None"] = relationship(
+        "UserProfile",
+        foreign_keys=[manager_user_id]
+    )
+
+    items: Mapped[list["Item"]] = relationship(
+        "Item",
+        back_populates="workflow_group"
+    )
+
+
+class ExternalContact(Base):
+    __tablename__ = "external_contacts"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=uuid_str
+    )
+
+    team_id: Mapped[int] = mapped_column(
+        ForeignKey("teams.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True
+    )
+
+    company_name: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False
+    )
+
+    contact_name: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True
+    )
+
+    email: Mapped[str | None] = mapped_column(
+        String(255),
+        nullable=True,
+        index=True
+    )
+
+    phone: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True
+    )
+
+    active: Mapped[bool] = mapped_column(
+        Boolean,
+        default=True,
+        nullable=False
+    )
+
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
+
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+        nullable=False
+    )
+
+    team: Mapped["Team"] = relationship("Team")
