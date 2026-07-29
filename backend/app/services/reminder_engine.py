@@ -7,14 +7,21 @@ from ..models import Reminder, Item, Notification
 from .notification_recipients import get_recipients
 from .email_builder import build_email_subject, build_email_body
 from .email_service import email_service
+from .protection_engine import (
+    get_protection_days,
+    resolve_protection_stage,
+)
 
+def get_matching_trigger_days(
+    reminder: Reminder,
+    today: date,
+) -> int | None:
+    protection_days = get_protection_days(reminder)
 
-def get_matching_trigger_days(reminder: Reminder, today: date) -> int | None:
-    if not reminder.advance_days:
-        return None
+    for days in protection_days:
+        trigger_date = reminder.due_date - timedelta(days=days)
 
-    for days in reminder.advance_days:
-        if reminder.due_date - timedelta(days=days) == today:
+        if trigger_date == today:
             return days
 
     return None
@@ -53,6 +60,17 @@ def run_reminders(db: Session) -> dict:
         if not reminder.item:
             continue
 
+        if reminder.item.archived:
+            print("⏭️ SKIP archived workflow")
+            continue
+
+        if reminder.item.status != "active":
+            print(
+                f"⏭️ SKIP workflow status: "
+                f"{reminder.item.status}"
+            )
+            continue
+
         trigger_days = get_matching_trigger_days(reminder, today)
 
         if trigger_days is None:
@@ -60,7 +78,17 @@ def run_reminders(db: Session) -> dict:
             continue
 
         item = reminder.item
-        recipients = get_recipients(item, db)
+
+        stage = resolve_protection_stage(
+            reminder=reminder,
+            trigger_days=trigger_days,
+        )
+
+        recipients = get_recipients(
+            item=item,
+            db=db,
+            stage=stage,
+        )
 
         print(f"📨 Recipients: {[u.email for u in recipients]}")
 
@@ -68,12 +96,23 @@ def run_reminders(db: Session) -> dict:
             continue
 
         subject = build_email_subject(
-            item,
-            reminder.due_date,
-            reminder.timezone
+            item=item,
+            due_date=reminder.due_date,
+            stage=stage,
         )
 
-        body = build_email_body(reminder, item)
+        body = build_email_body(
+            reminder=reminder,
+            item=item,
+            stage=stage,
+        )
+
+        print(
+            f"🛡️ Protection level "
+            f"{stage.level}/{stage.total_levels} | "
+            f"{stage.severity} | "
+            f"{stage.trigger_days} days before deadline"
+        )
 
         for user in recipients:
             if not user.email:

@@ -48,22 +48,27 @@ class ItemUpdate(BaseModel):
 
 
 class ItemRead(BaseModel):
-    id: UUID
+    id: str
+    owner_id: str
     title: str
     category: str
     notes: str | None = None
     attachment_url: str | None = None
-    archived: bool
-    created_at: datetime
     visibility: str
     team_id: int | None = None
-
     workflow_group_id: str | None = None
-
-    assigned_user_id: Optional[str] = None
+    assigned_user_id: str | None = None
     notify_all: bool
+    archived: bool
 
-    model_config = {"from_attributes": True}
+    status: str
+    completed_at: datetime | None = None
+
+    created_at: datetime
+
+    model_config = {
+        "from_attributes": True
+    }
 
 
 
@@ -78,7 +83,7 @@ class ReminderCreate(BaseModel):
     timezone: str = "UTC"
     recurrence_months: int = 0
     advance_days: list[int] = Field(
-        default_factory=lambda: [30, 7, 0]
+        default_factory=lambda: [30, 14, 7, 3, 1]
     )
 
 

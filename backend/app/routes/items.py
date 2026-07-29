@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -152,6 +153,114 @@ def create_item(
     db.refresh(item)
     return item
 
+@router.post(
+    "/{item_id}/complete",
+    response_model=ItemRead,
+)
+def complete_item(
+    item_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team),
+):
+    item = get_accessible_item_or_404(
+        item_id=item_id,
+        db=db,
+        current_user=current_user,
+    )
+
+    ensure_item_can_be_edited(
+        item=item,
+        current_user=current_user,
+        team=team,
+    )
+
+    if item.status == "completed":
+        return item
+
+    if item.status == "cancelled":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="A cancelled workflow must be reopened before it can be completed.",
+        )
+
+    item.status = "completed"
+    item.completed_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(item)
+
+    return item
+
+
+@router.post(
+    "/{item_id}/reopen",
+    response_model=ItemRead,
+)
+def reopen_item(
+    item_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team),
+):
+    item = get_accessible_item_or_404(
+        item_id=item_id,
+        db=db,
+        current_user=current_user,
+    )
+
+    ensure_item_can_be_edited(
+        item=item,
+        current_user=current_user,
+        team=team,
+    )
+
+    if item.status == "active":
+        return item
+
+    item.status = "active"
+    item.completed_at = None
+
+    db.commit()
+    db.refresh(item)
+
+    return item
+
+
+@router.post(
+    "/{item_id}/cancel",
+    response_model=ItemRead,
+)
+def cancel_item(
+    item_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team),
+):
+    item = get_accessible_item_or_404(
+        item_id=item_id,
+        db=db,
+        current_user=current_user,
+    )
+
+    ensure_item_can_be_edited(
+        item=item,
+        current_user=current_user,
+        team=team,
+    )
+
+    if item.status == "cancelled":
+        return item
+
+    item.status = "cancelled"
+    item.completed_at = None
+
+    db.commit()
+    db.refresh(item)
+
+    return item
+
+
 
 @router.get("/{item_id}", response_model=ItemRead)
 def get_item(
@@ -187,6 +296,21 @@ def update_item(
     )
 
     updates = payload.model_dump(exclude_unset=True)
+
+    if "status" in updates:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                "Workflow status cannot be changed through the regular update endpoint. "
+                "Use complete, reopen, or cancel."
+            ),
+        )
+
+    if "completed_at" in updates:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="completed_at is managed automatically.",
+        )
 
     if "workflow_group_id" in updates:
         validate_workflow_group(

@@ -83,6 +83,19 @@ class Item(Base):
     notify_all: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     archived: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    status: Mapped[str] = mapped_column(
+        String(32),
+        default="active",
+        nullable=False,
+        index=True
+    )
+
+    completed_at: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True
+    )
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
     team: Mapped["Team | None"] = relationship("Team")
@@ -121,7 +134,7 @@ class Reminder(Base):
     recurrence_months: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     advance_days: Mapped[list[int]] = mapped_column(
         JSON,
-        default=lambda: [30, 7, 0],
+        default=lambda: [30, 14, 7, 3, 1],
         nullable=False
     )
     status: Mapped[str] = mapped_column(String(32), default="active", nullable=False)

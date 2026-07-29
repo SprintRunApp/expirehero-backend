@@ -1,95 +1,76 @@
-from datetime import date, datetime
-from zoneinfo import ZoneInfo
+from datetime import date
 
 from ..models import Reminder, Item
-
-
-def compute_notification_status(
-    due_date: date,
-    timezone: str = "UTC"
-) -> tuple[str, int]:
-    today = datetime.now(ZoneInfo(timezone or "UTC")).date()
-    diff = (due_date - today).days
-
-    if diff < 0:
-        return "expired", diff
-
-    if diff <= 7:
-        return "urgent", diff
-
-    if diff <= 30:
-        return "soon", diff
-
-    return "normal", diff
+from .protection_engine import ProtectionStage
 
 
 def build_email_subject(
     item: Item,
     due_date: date,
-    timezone: str = "UTC"
+    stage: ProtectionStage,
 ) -> str:
-    status, diff = compute_notification_status(due_date, timezone)
+    days = stage.trigger_days
 
-    if status == "expired":
-        return f"[EXPIRED] {item.title} has expired"
+    if stage.severity == "critical":
+        prefix = "[CRITICAL]"
+    elif stage.severity == "urgent":
+        prefix = "[URGENT]"
+    elif stage.severity == "warning":
+        prefix = "[ACTION REQUIRED]"
+    else:
+        prefix = "[PROTECTION]"
 
-    if status == "urgent":
-        if diff == 0:
-            return f"[URGENT] {item.title} expires today"
-        if diff == 1:
-            return f"[URGENT] {item.title} expires in 1 day"
-        return f"[URGENT] {item.title} expires in {diff} days"
+    day_text = "1 day" if days == 1 else f"{days} days"
 
-    if status == "soon":
-        if diff == 1:
-            return f"Reminder: {item.title} expires in 1 day"
-        return f"Reminder: {item.title} expires in {diff} days"
-
-    return f"Reminder: {item.title}"
-
-
-def build_email_body(reminder: Reminder, item: Item) -> str:
-    status, diff = compute_notification_status(
-        reminder.due_date,
-        reminder.timezone
+    return (
+        f"{prefix} {item.title} expires in {day_text}"
     )
 
-    if status == "expired":
-        status_text = "Expired"
-    elif status == "urgent":
-        status_text = "Urgent"
-    elif status == "soon":
-        status_text = "Expiring soon"
-    else:
-        status_text = "Reminder"
 
-    assigned_to = item.assigned_user.name if getattr(item, "assigned_user", None) else "Unassigned"
+def build_email_body(
+    reminder: Reminder,
+    item: Item,
+    stage: ProtectionStage,
+) -> str:
+    assigned_to = (
+        item.assigned_user.name
+        if getattr(item, "assigned_user", None)
+        else "Unassigned"
+    )
 
-    if diff < 0:
-        timing_text = f"Expired {-diff} day(s) ago"
-    elif diff == 0:
-        timing_text = "Expires today"
-    elif diff == 1:
-        timing_text = "Expires in 1 day"
-    else:
-        timing_text = f"Expires in {diff} days"
+    group_name = (
+        item.workflow_group.name
+        if getattr(item, "workflow_group", None)
+        else "No workflow group"
+    )
 
-    body = f"""Hello,
+    days_text = (
+        "1 day"
+        if stage.trigger_days == 1
+        else f"{stage.trigger_days} days"
+    )
 
-This is a reminder about: "{item.title}"
+    return f"""Hello,
 
+ExpireHeros is protecting your company from a missed deadline.
+
+Workflow: {item.title}
 Category: {item.category or "—"}
+Workflow group: {group_name}
 Assigned to: {assigned_to}
+
 Due date: {reminder.due_date.strftime("%Y-%m-%d")}
-Status: {status_text}
-Timing: {timing_text}
+Time remaining: {days_text}
+Protection level: {stage.level} of {stage.total_levels}
+Protection status: {stage.label}
 Timezone: {reminder.timezone or "UTC"}
 
-Please take action to avoid issues.
+Action is required before the due date.
+
+Completing this workflow now will stop all remaining protection alerts.
 
 Open dashboard:
 https://www.expireheros.app
 
-– ExpireHero
+– ExpireHeros Protection Engine
 """
-    return body
