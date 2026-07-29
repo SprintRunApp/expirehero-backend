@@ -1,72 +1,70 @@
 import { useNavigate } from "react-router-dom";
-
-const DATA = {
-    construction: {
-        emoji: "🏗",
-        title: "Compliance reminders for construction companies",
-        subtitle: "Track safety training, worker medical checks, equipment inspections and fire safety deadlines.",
-        bullets: [
-            "Health & safety training",
-            "Equipment inspections",
-            "Worker medical exams",
-            "Fire safety checks"
-        ]
-    },
-    transport: {
-        emoji: "🚛",
-        title: "Compliance reminders for transport companies",
-        subtitle: "Track vehicle inspections, driver licenses, medical certificates, insurance and fleet maintenance.",
-        bullets: [
-            "Vehicle inspections",
-            "Driver licenses",
-            "Insurance renewals",
-            "Fleet maintenance"
-        ]
-    },
-    production: {
-        emoji: "🏭",
-        title: "Compliance reminders for production companies",
-        subtitle: "Track machine inspections, equipment calibration, safety training and ISO certification dates.",
-        bullets: [
-            "Machine inspections",
-            "Equipment calibration",
-            "Safety training",
-            "ISO reviews"
-        ]
-    }
-};
+import { getIndustryById } from "../data/industries";
 
 export default function IndustryLandingPage({ industry }) {
     const navigate = useNavigate();
-    const data = DATA[industry];
+    const data = getIndustryById(industry);
+
+    if (!data) {
+        return (
+            <div style={page}>
+                <div style={card}>
+                    <h1 style={title}>Industry not found</h1>
+
+                    <button
+                        onClick={() => navigate("/")}
+                        style={cta}
+                    >
+                        Return to home page
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div style={page}>
             <div style={card}>
-                <button onClick={() => navigate("/")} style={backButton}>
+                <button
+                    onClick={() => navigate("/")}
+                    style={backButton}
+                >
                     ← Back
                 </button>
 
-                <div style={{ fontSize: 56, marginBottom: 20 }}>{data.emoji}</div>
+                <div style={{ fontSize: 56, marginBottom: 20 }}>
+                    {data.emoji}
+                </div>
 
-                <h1 style={title}>{data.title}</h1>
+                <h1 style={title}>
+                    {data.title}
+                </h1>
 
-                <p style={subtitle}>{data.subtitle}</p>
+                <p style={subtitle}>
+                    {data.subtitle}
+                </p>
 
                 <div style={bulletBox}>
-                    {data.bullets.map((b) => (
-                        <div key={b} style={bullet}>✓ {b}</div>
+                    {data.bullets.map((item) => (
+                        <div key={item} style={bullet}>
+                            ✓ {item}
+                        </div>
                     ))}
                 </div>
 
                 <button
-                    onClick={() => navigate(`/signup?industry=${industry}`)}
+                    onClick={() =>
+                        navigate(`/signup?industry=${industry}`)
+                    }
                     style={cta}
                 >
                     Start now
                 </button>
 
-                <button onClick={() => navigate("/login")} style={loginLink}>
+                <button
+                    onClick={() => navigate("/login")}
+                    style={loginLink}
+                >
                     Already have an account? Sign in
                 </button>
             </div>
@@ -81,7 +79,8 @@ const page = {
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "Inter, sans-serif",
+    boxSizing: "border-box"
 };
 
 const card = {
@@ -92,7 +91,8 @@ const card = {
     padding: 56,
     boxShadow: "0 25px 60px rgba(37,99,235,0.18)",
     textAlign: "center",
-    position: "relative"
+    position: "relative",
+    boxSizing: "border-box"
 };
 
 const backButton = {

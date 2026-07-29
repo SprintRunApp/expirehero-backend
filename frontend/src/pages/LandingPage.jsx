@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { INDUSTRIES } from "../data/industries";
 
 export default function LandingPage() {
     const navigate = useNavigate();
@@ -6,26 +7,39 @@ export default function LandingPage() {
     return (
         <div style={page}>
             <div style={card}>
-                <img src="/logo.png" style={{ height: 52, marginBottom: 40 }} />
+                <img
+                    src="/logo.png"
+                    alt="ExpireHeros"
+                    style={{ height: 52, marginBottom: 40 }}
+                />
 
                 <h1 style={title}>
                     Never miss a certificate, inspection or important deadline.
                 </h1>
 
                 <p style={subtitle}>
-                    ExpireHeros helps companies track compliance deadlines, inspections,
-                    certificates and renewals in one simple dashboard.
+                    ExpireHeros helps companies track compliance deadlines,
+                    inspections, certificates and renewals in one simple dashboard.
                 </p>
 
                 <h2 style={sectionTitle}>Choose your industry</h2>
 
                 <div style={grid}>
-                    <IndustryButton emoji="🏗" title="Construction" onClick={() => navigate("/construction")} />
-                    <IndustryButton emoji="🚛" title="Transport" onClick={() => navigate("/transport")} />
-                    <IndustryButton emoji="🏭" title="Production" onClick={() => navigate("/production")} />
+                    {INDUSTRIES.map((industry, index) => (
+                        <IndustryButton
+                            key={industry.id}
+                            emoji={industry.emoji}
+                            title={industry.name}
+                            onClick={() => navigate(`/${industry.id}`)}
+                            style={getIndustryPosition(index)}
+                        />
+                    ))}
                 </div>
 
-                <button onClick={() => navigate("/login")} style={loginLink}>
+                <button
+                    onClick={() => navigate("/login")}
+                    style={loginLink}
+                >
                     Already have an account? Sign in
                 </button>
             </div>
@@ -33,13 +47,40 @@ export default function LandingPage() {
     );
 }
 
-function IndustryButton({ emoji, title, onClick }) {
+function IndustryButton({ emoji, title, onClick, style }) {
     return (
-        <button onClick={onClick} style={industryButton}>
+        <button
+            onClick={onClick}
+            style={{
+                ...industryButton,
+                ...style
+            }}
+        >
             <div style={{ fontSize: 34 }}>{emoji}</div>
-            <div style={{ fontWeight: 800, fontSize: 18 }}>{title}</div>
+
+            <div style={{ fontWeight: 800, fontSize: 18 }}>
+                {title}
+            </div>
         </button>
     );
+}
+
+function getIndustryPosition(index) {
+    if (index === 3) {
+        return {
+            gridColumn: "2 / span 2"
+        };
+    }
+
+    if (index === 4) {
+        return {
+            gridColumn: "4 / span 2"
+        };
+    }
+
+    return {
+        gridColumn: "span 2"
+    };
 }
 
 const page = {
@@ -49,7 +90,8 @@ const page = {
     alignItems: "center",
     justifyContent: "center",
     padding: 24,
-    fontFamily: "Inter, sans-serif"
+    fontFamily: "Inter, sans-serif",
+    boxSizing: "border-box"
 };
 
 const card = {
@@ -59,7 +101,8 @@ const card = {
     borderRadius: 28,
     padding: 56,
     boxShadow: "0 25px 60px rgba(37,99,235,0.18)",
-    textAlign: "center"
+    textAlign: "center",
+    boxSizing: "border-box"
 };
 
 const title = {
@@ -86,7 +129,7 @@ const sectionTitle = {
 
 const grid = {
     display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
+    gridTemplateColumns: "repeat(6, 1fr)",
     gap: 18
 };
 
@@ -97,7 +140,8 @@ const industryButton = {
     padding: 28,
     cursor: "pointer",
     color: "#0f172a",
-    boxShadow: "0 12px 28px rgba(37,99,235,0.12)"
+    boxShadow: "0 12px 28px rgba(37,99,235,0.12)",
+    minHeight: 150
 };
 
 const loginLink = {

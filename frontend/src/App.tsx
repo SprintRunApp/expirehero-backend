@@ -79,6 +79,16 @@ function App() {
         />
 
         <Route
+          path="/healthcare"
+          element={<IndustryLandingPage industry="healthcare" />}
+        />
+
+        <Route
+          path="/hospitality"
+          element={<IndustryLandingPage industry="hospitality" />}
+        />
+
+        <Route
           path="/signup"
           element={user ? <Dashboard user={user} /> : <LoginPage onLogin={setUser} />}
         />
