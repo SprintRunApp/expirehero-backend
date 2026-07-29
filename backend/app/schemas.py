@@ -4,7 +4,7 @@ from datetime import date, datetime
 from uuid import UUID
 
 from pydantic import BaseModel, EmailStr, Field
-from datetime import datetime
+
 from typing import Optional
 
 class UserMe(BaseModel):
@@ -25,8 +25,12 @@ class ItemCreate(BaseModel):
     attachment_url: str | None = None
     visibility: str = "private"
 
+    workflow_group_id: str | None = None
+
     assigned_user_id: Optional[str] = None
     notify_all: bool = False
+
+    
 
 
 class ItemUpdate(BaseModel):
@@ -35,6 +39,9 @@ class ItemUpdate(BaseModel):
     notes: str | None = None
     attachment_url: str | None = None
     archived: bool | None = None
+    visibility: str | None = None
+
+    workflow_group_id: str | None = None
 
     assigned_user_id: Optional[str] = None
     notify_all: Optional[bool] = None
@@ -51,13 +58,16 @@ class ItemRead(BaseModel):
     visibility: str
     team_id: int | None = None
 
+    workflow_group_id: str | None = None
+
     assigned_user_id: Optional[str] = None
     notify_all: bool
 
-    created_at: datetime
+    model_config = {"from_attributes": True}
 
-class Config:
-    from_attributes = True
+
+
+   
 
    
 
@@ -67,7 +77,9 @@ class ReminderCreate(BaseModel):
     due_date: date
     timezone: str = "UTC"
     recurrence_months: int = 0
-    advance_days: list[int] = [30, 7, 0]
+    advance_days: list[int] = Field(
+        default_factory=lambda: [30, 7, 0]
+    )
 
 
 class ReminderUpdate(BaseModel):
@@ -111,7 +123,7 @@ class ReminderWithItem(BaseModel):
     email_sent_count: int = 0
 
 
-from pydantic import BaseModel
+
 
 
 class TeamCreate(BaseModel):

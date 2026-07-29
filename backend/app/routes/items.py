@@ -3,12 +3,94 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import get_current_user, get_current_team
-from ..models import Item, UserProfile, Team
+from ..models import Item, UserProfile, Team, WorkflowGroup
 from ..schemas import ItemCreate, ItemRead, ItemUpdate
 from ..services.team_access import item_access_filter, get_user_team_id
 from ..services.team_limits import has_active_plan
 
 router = APIRouter()
+
+def validate_workflow_group(
+    workflow_group_id: str | None,
+    team: Team,
+    db: Session,
+) -> None:
+    if workflow_group_id is None:
+        return
+
+    group = (
+        db.query(WorkflowGroup)
+        .filter(
+            WorkflowGroup.id == workflow_group_id,
+            WorkflowGroup.team_id == team.id,
+        )
+        .first()
+    )
+
+    if not group:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Workflow group does not belong to this team.",
+        )
+    
+def get_accessible_item_or_404(
+    item_id: str,
+    db: Session,
+    current_user: UserProfile,
+) -> Item:
+    item = (
+        db.query(Item)
+        .filter(
+            Item.id == item_id,
+            item_access_filter(current_user),
+        )
+        .first()
+    )
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found.",
+        )
+
+    return item
+
+def ensure_item_can_be_edited(
+    item: Item,
+    current_user: UserProfile,
+    team: Team,
+) -> None:
+    is_item_owner = item.owner_id == current_user.id
+    is_team_owner = team.owner_id == current_user.id
+
+    is_group_manager = (
+        item.workflow_group is not None
+        and item.workflow_group.manager_user_id == current_user.id
+    )
+
+    if is_item_owner or is_team_owner or is_group_manager:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You do not have permission to edit this workflow.",
+    )
+
+def ensure_item_can_be_deleted(
+    item: Item,
+    current_user: UserProfile,
+    team: Team,
+) -> None:
+    is_item_owner = item.owner_id == current_user.id
+    is_team_owner = team.owner_id == current_user.id
+
+    if is_item_owner or is_team_owner:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You do not have permission to delete this workflow.",
+    )
 
 
 @router.get("/", response_model=list[ItemRead])
@@ -39,6 +121,18 @@ def create_item(
             status_code=403,
             detail="Active subscription required."
         )
+    
+    if payload.workflow_group_id and payload.visibility != "team":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A workflow assigned to a group must have team visibility.",
+        )
+    
+    validate_workflow_group(
+        workflow_group_id=payload.workflow_group_id,
+        team=team,
+        db=db,
+    )
 
     item = Item(
         owner_id=current_user.id,
@@ -46,8 +140,9 @@ def create_item(
         category=payload.category,
         notes=payload.notes,
         attachment_url=payload.attachment_url,
-        visibility=payload.visibility if hasattr(payload, "visibility") else "private",
-        team_id=team_id if getattr(payload, "visibility", "private") == "team" else None,
+        visibility=payload.visibility,
+        team_id=team_id if payload.visibility == "team" else None,
+        workflow_group_id=payload.workflow_group_id,
         assigned_user_id=payload.assigned_user_id,
         notify_all=payload.notify_all,
     )
@@ -62,18 +157,13 @@ def create_item(
 def get_item(
     item_id: str,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
 ):
-    item = (
-        db.query(Item)
-        .filter(Item.id == item_id, Item.owner_id == current_user.id)
-        .first()
+    return get_accessible_item_or_404(
+        item_id=item_id,
+        db=db,
+        current_user=current_user,
     )
-
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
-
-    return item
 
 
 @router.put("/{item_id}", response_model=ItemRead)
@@ -81,18 +171,44 @@ def update_item(
     item_id: str,
     payload: ItemUpdate,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team)
 ):
-    item = (
-        db.query(Item)
-        .filter(Item.id == item_id, Item.owner_id == current_user.id)
-        .first()
+    item = get_accessible_item_or_404(
+        item_id=item_id,
+        db=db,
+        current_user=current_user,
     )
 
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+    ensure_item_can_be_edited(
+        item=item,
+        current_user=current_user,
+        team=team,
+    )
 
     updates = payload.model_dump(exclude_unset=True)
+
+    if "workflow_group_id" in updates:
+        validate_workflow_group(
+            workflow_group_id=updates["workflow_group_id"],
+            team=team,
+            db=db,
+        )
+
+    new_group_id = updates.get("workflow_group_id", item.workflow_group_id)
+    new_visibility = updates.get("visibility", item.visibility)
+
+    if new_group_id and new_visibility != "team":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A workflow assigned to a group must have team visibility.",
+        )
+    
+    if "visibility" in updates:
+        if updates["visibility"] == "team":
+            updates["team_id"] = team.id
+        else:
+            updates["team_id"] = None
 
     for field, value in updates.items():
         setattr(item, field, value)
@@ -102,21 +218,29 @@ def update_item(
     return item
 
 
-@router.delete("/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def delete_item(
     item_id: str,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team),
 ):
-    item = (
-        db.query(Item)
-        .filter(Item.id == item_id, Item.owner_id == current_user.id)
-        .first()
+    item = get_accessible_item_or_404(
+        item_id=item_id,
+        db=db,
+        current_user=current_user,
     )
 
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+    ensure_item_can_be_deleted(
+        item=item,
+        current_user=current_user,
+        team=team,
+    )
 
     db.delete(item)
     db.commit()
+
     return None

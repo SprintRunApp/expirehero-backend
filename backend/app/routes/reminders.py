@@ -1,12 +1,26 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from ..db import get_db
 from ..deps import get_current_user, get_current_team
-from ..models import Item, Reminder, UserProfile, Notification, Team
-from ..schemas import ReminderCreate, ReminderRead, ReminderUpdate, ReminderWithItem, NotificationRead
-from ..services.reminder_status import compute_days_left, compute_ui_status
+from ..models import (
+    Item,
+    Reminder,
+    UserProfile,
+    Notification,
+    Team,
+)
+from ..schemas import (
+    ReminderCreate,
+    ReminderRead,
+    ReminderUpdate,
+    ReminderWithItem,
+    NotificationRead,
+)
+from ..services.reminder_status import (
+    compute_days_left,
+    compute_ui_status,
+)
 from ..services.plan_limits import check_reminder_limit
 from ..services.team_access import item_access_filter
 from ..services.team_limits import has_active_plan
@@ -15,10 +29,95 @@ from ..services.team_limits import has_active_plan
 router = APIRouter()
 
 
+def build_reminder_read(reminder: Reminder) -> ReminderRead:
+    return ReminderRead(
+        id=reminder.id,
+        item_id=reminder.item_id,
+        due_date=reminder.due_date,
+        timezone=reminder.timezone,
+        recurrence_months=reminder.recurrence_months,
+        advance_days=reminder.advance_days,
+        status=reminder.status,
+        created_at=reminder.created_at,
+        ui_status=compute_ui_status(reminder.due_date),
+        days_left=compute_days_left(reminder.due_date),
+    )
+
+
+def get_accessible_item_or_404(
+    item_id: str,
+    db: Session,
+    current_user: UserProfile,
+) -> Item:
+    item = (
+        db.query(Item)
+        .filter(
+            Item.id == item_id,
+            item_access_filter(current_user),
+        )
+        .first()
+    )
+
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item not found.",
+        )
+
+    return item
+
+
+def get_accessible_reminder_or_404(
+    reminder_id: str,
+    db: Session,
+    current_user: UserProfile,
+) -> Reminder:
+    reminder = (
+        db.query(Reminder)
+        .options(joinedload(Reminder.item))
+        .join(Item, Reminder.item_id == Item.id)
+        .filter(
+            Reminder.id == reminder_id,
+            item_access_filter(current_user),
+        )
+        .first()
+    )
+
+    if not reminder:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Reminder not found.",
+        )
+
+    return reminder
+
+
+def ensure_item_can_be_edited(
+    item: Item,
+    current_user: UserProfile,
+    team: Team,
+) -> None:
+    is_item_owner = item.owner_id == current_user.id
+    is_team_owner = team.owner_id == current_user.id
+
+    is_group_manager = (
+        item.workflow_group is not None
+        and item.workflow_group.manager_user_id == current_user.id
+    )
+
+    if is_item_owner or is_team_owner or is_group_manager:
+        return
+
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="You do not have permission to manage reminders for this workflow.",
+    )
+
+
 @router.get("/", response_model=list[ReminderWithItem])
 def list_reminders(
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
 ):
     reminders = (
         db.query(Reminder)
@@ -32,7 +131,6 @@ def list_reminders(
     result: list[ReminderWithItem] = []
 
     for reminder in reminders:
-
         sent_notifications = (
             db.query(Notification)
             .filter(
@@ -44,13 +142,19 @@ def list_reminders(
             .all()
         )
 
-        last_sent = sent_notifications[0].sent_at if sent_notifications else None
+        last_sent = (
+            sent_notifications[0].sent_at
+            if sent_notifications
+            else None
+        )
+
         email_sent_count = len(sent_notifications)
 
-        if email_sent_count > 0:
-            email_status = "sent"
-        else:
-            email_status = "none"
+        email_status = (
+            "sent"
+            if email_sent_count > 0
+            else "none"
+        )
 
         result.append(
             ReminderWithItem(
@@ -66,7 +170,6 @@ def list_reminders(
                 days_left=compute_days_left(reminder.due_date),
                 item_title=reminder.item.title,
                 item_category=reminder.item.category,
-
                 email_status=email_status,
                 last_email_sent_at=last_sent,
                 email_sent_count=email_sent_count,
@@ -76,42 +179,45 @@ def list_reminders(
     return result
 
 
-@router.post("/", response_model=ReminderRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=ReminderRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_reminder(
     payload: ReminderCreate,
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user),
-    team: Team = Depends(get_current_team)
+    team: Team = Depends(get_current_team),
 ):
-    
     if not has_active_plan(team):
         raise HTTPException(
-            status_code=403,
-            detail="Active subscription required."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Active subscription required.",
         )
-    
+
     if not check_reminder_limit(db, current_user):
         raise HTTPException(
-            status_code=403,
-            detail="Reminder limit reached for your subscription plan."
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Reminder limit reached for your subscription plan.",
         )
 
     item_id = str(payload.item_id)
 
-    item = (
-    db.query(Item)
-        .filter(
-            Item.id == item_id,
-            item_access_filter(current_user)
-        )
-        .first()
-)
+    item = get_accessible_item_or_404(
+        item_id=item_id,
+        db=db,
+        current_user=current_user,
+    )
 
-    if not item:
-        raise HTTPException(status_code=404, detail="Item not found")
+    ensure_item_can_be_edited(
+        item=item,
+        current_user=current_user,
+        team=team,
+    )
 
     reminder = Reminder(
-        item_id=item_id,
+        item_id=item.id,
         due_date=payload.due_date,
         timezone=payload.timezone,
         recurrence_months=payload.recurrence_months,
@@ -123,66 +229,49 @@ def create_reminder(
     db.commit()
     db.refresh(reminder)
 
-    return ReminderRead(
-        id=reminder.id,
-        item_id=reminder.item_id,
-        due_date=reminder.due_date,
-        timezone=reminder.timezone,
-        recurrence_months=reminder.recurrence_months,
-        advance_days=reminder.advance_days,
-        status=reminder.status,
-        created_at=reminder.created_at,
-        ui_status=compute_ui_status(reminder.due_date),
-        days_left=compute_days_left(reminder.due_date),
-    )
+    return build_reminder_read(reminder)
 
 
-@router.get("/{reminder_id}", response_model=ReminderRead)
+@router.get(
+    "/{reminder_id}",
+    response_model=ReminderRead,
+)
 def get_reminder(
     reminder_id: str,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
 ):
-    reminder = (
-        db.query(Reminder)
-        .join(Item, Reminder.item_id == Item.id)
-        .filter(Reminder.id == reminder_id, Item.owner_id == current_user.id)
-        .first()
+    reminder = get_accessible_reminder_or_404(
+        reminder_id=reminder_id,
+        db=db,
+        current_user=current_user,
     )
 
-    if not reminder:
-        raise HTTPException(status_code=404, detail="Reminder not found")
-
-    return ReminderRead(
-        id=reminder.id,
-        item_id=reminder.item_id,
-        due_date=reminder.due_date,
-        timezone=reminder.timezone,
-        recurrence_months=reminder.recurrence_months,
-        advance_days=reminder.advance_days,
-        status=reminder.status,
-        created_at=reminder.created_at,
-        ui_status=compute_ui_status(reminder.due_date),
-        days_left=compute_days_left(reminder.due_date),
-    )
+    return build_reminder_read(reminder)
 
 
-@router.put("/{reminder_id}", response_model=ReminderRead)
+@router.put(
+    "/{reminder_id}",
+    response_model=ReminderRead,
+)
 def update_reminder(
     reminder_id: str,
     payload: ReminderUpdate,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team),
 ):
-    reminder = (
-        db.query(Reminder)
-        .join(Item, Reminder.item_id == Item.id)
-        .filter(Reminder.id == reminder_id, Item.owner_id == current_user.id)
-        .first()
+    reminder = get_accessible_reminder_or_404(
+        reminder_id=reminder_id,
+        db=db,
+        current_user=current_user,
     )
 
-    if not reminder:
-        raise HTTPException(status_code=404, detail="Reminder not found")
+    ensure_item_can_be_edited(
+        item=reminder.item,
+        current_user=current_user,
+        team=team,
+    )
 
     updates = payload.model_dump(exclude_unset=True)
 
@@ -192,62 +281,58 @@ def update_reminder(
     db.commit()
     db.refresh(reminder)
 
-    return ReminderRead(
-        id=reminder.id,
-        item_id=reminder.item_id,
-        due_date=reminder.due_date,
-        timezone=reminder.timezone,
-        recurrence_months=reminder.recurrence_months,
-        advance_days=reminder.advance_days,
-        status=reminder.status,
-        created_at=reminder.created_at,
-        ui_status=compute_ui_status(reminder.due_date),
-        days_left=compute_days_left(reminder.due_date),
-    )
+    return build_reminder_read(reminder)
 
 
-@router.delete("/{reminder_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/{reminder_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
 def delete_reminder(
     reminder_id: str,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team),
 ):
-    reminder = (
-        db.query(Reminder)
-        .join(Item, Reminder.item_id == Item.id)
-        .filter(
-            Reminder.id == reminder_id,
-            item_access_filter(current_user)
-        )
-        .first()
+    reminder = get_accessible_reminder_or_404(
+        reminder_id=reminder_id,
+        db=db,
+        current_user=current_user,
     )
 
-    if not reminder:
-        raise HTTPException(status_code=404, detail="Reminder not found")
+    ensure_item_can_be_edited(
+        item=reminder.item,
+        current_user=current_user,
+        team=team,
+    )
 
     db.delete(reminder)
     db.commit()
+
     return None
 
 
-@router.get("/{reminder_id}/notifications", response_model=list[NotificationRead])
+@router.get(
+    "/{reminder_id}/notifications",
+    response_model=list[NotificationRead],
+)
 def get_reminder_notifications(
     reminder_id: str,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
+    team: Team = Depends(get_current_team),
 ):
-    reminder = (
-        db.query(Reminder)
-        .join(Item, Reminder.item_id == Item.id)
-        .filter(
-            Reminder.id == reminder_id,
-            Item.owner_id == current_user.id
-        )
-        .first()
+    reminder = get_accessible_reminder_or_404(
+        reminder_id=reminder_id,
+        db=db,
+        current_user=current_user,
     )
 
-    if not reminder:
-        raise HTTPException(status_code=403, detail="Only manager can view notification history")
+    ensure_item_can_be_edited(
+        item=reminder.item,
+        current_user=current_user,
+        team=team,
+    )
 
     notifications = (
         db.query(Notification)
@@ -257,4 +342,3 @@ def get_reminder_notifications(
     )
 
     return notifications
-
