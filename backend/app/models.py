@@ -117,6 +117,13 @@ class Item(Base):
         cascade="all, delete-orphan"
     )
 
+    completions: Mapped[list["WorkflowCompletion"]] = relationship(
+        "WorkflowCompletion",
+        back_populates="item",
+        cascade="all, delete-orphan",
+        order_by="WorkflowCompletion.completed_at.desc()",
+    )
+
 class Reminder(Base):
     __tablename__ = "reminders"
     
@@ -166,6 +173,71 @@ class Notification(Base):
     trigger_days: Mapped[int] = mapped_column(Integer, nullable=False)
     due_date: Mapped[date] = mapped_column(Date, nullable=False)
 
+class WorkflowCompletion(Base):
+    __tablename__ = "workflow_completions"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=uuid_str,
+    )
+
+    item_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("items.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    reminder_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("reminders.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    completed_by_user_id: Mapped[str] = mapped_column(
+        String(36),
+        ForeignKey("user_profiles.id"),
+        nullable=False,
+        index=True,
+    )
+
+    previous_due_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
+
+    next_due_date: Mapped[date | None] = mapped_column(
+        Date,
+        nullable=True,
+    )
+
+    completed_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        default=datetime.utcnow,
+        nullable=False,
+        index=True,
+    )
+
+    notes: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
+
+    item: Mapped["Item"] = relationship(
+        "Item",
+        back_populates="completions",
+    )
+
+    reminder: Mapped["Reminder | None"] = relationship(
+        "Reminder",
+    )
+
+    completed_by: Mapped["UserProfile"] = relationship(
+        "UserProfile",
+        foreign_keys=[completed_by_user_id],
+    )
 
 class Team(Base):
     __tablename__ = "teams"

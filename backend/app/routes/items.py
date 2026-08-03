@@ -4,12 +4,41 @@ from sqlalchemy.orm import Session
 
 from ..db import get_db
 from ..deps import get_current_user, get_current_team
-from ..models import Item, UserProfile, Team, WorkflowGroup
+from ..models import (
+    Item,
+    UserProfile,
+    Team,
+    WorkflowGroup,
+    Reminder,
+    WorkflowCompletion,
+)
 from ..schemas import ItemCreate, ItemRead, ItemUpdate
 from ..services.team_access import item_access_filter, get_user_team_id
 from ..services.team_limits import has_active_plan
+from calendar import monthrange
+from datetime import date, datetime
 
 router = APIRouter()
+
+
+def add_months(source_date: date, months: int) -> date:
+    if months <= 0:
+        return source_date
+
+    target_month_index = source_date.month - 1 + months
+    target_year = source_date.year + target_month_index // 12
+    target_month = target_month_index % 12 + 1
+
+    target_day = min(
+        source_date.day,
+        monthrange(target_year, target_month)[1],
+    )
+
+    return date(
+        year=target_year,
+        month=target_month,
+        day=target_day,
+    )
 
 def validate_workflow_group(
     workflow_group_id: str | None,
@@ -181,11 +210,55 @@ def complete_item(
     if item.status == "cancelled":
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail="A cancelled workflow must be reopened before it can be completed.",
+            detail=(
+                "A cancelled workflow must be reopened "
+                "before it can be completed."
+            ),
         )
 
-    item.status = "completed"
-    item.completed_at = datetime.utcnow()
+    reminder = (
+        db.query(Reminder)
+        .filter(
+            Reminder.item_id == item.id,
+            Reminder.status == "active",
+        )
+        .order_by(Reminder.created_at.desc())
+        .first()
+    )
+
+    completed_at = datetime.utcnow()
+    previous_due_date = reminder.due_date if reminder else None
+    next_due_date = None
+
+    if reminder and reminder.recurrence_months > 0:
+        next_due_date = add_months(
+            source_date=reminder.due_date,
+            months=reminder.recurrence_months,
+        )
+
+    completion = WorkflowCompletion(
+        item_id=item.id,
+        reminder_id=reminder.id if reminder else None,
+        completed_by_user_id=current_user.id,
+        previous_due_date=previous_due_date,
+        next_due_date=next_due_date,
+        completed_at=completed_at,
+    )
+
+    db.add(completion)
+
+    if reminder and reminder.recurrence_months > 0:
+        reminder.due_date = next_due_date
+        reminder.status = "active"
+
+        item.status = "active"
+        item.completed_at = None
+    else:
+        if reminder:
+            reminder.status = "completed"
+
+        item.status = "completed"
+        item.completed_at = completed_at
 
     db.commit()
     db.refresh(item)
