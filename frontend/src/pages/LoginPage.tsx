@@ -4,24 +4,26 @@ import {
     loginWithEmail,
     registerWithEmail
 } from "../auth";
+import { getIndustryById } from "../data/industries";
 
-import { useSearchParams, useLocation } from "react-router-dom";
+import {
+    useSearchParams,
+    useLocation,
+    useNavigate
+} from "react-router-dom";
 
 export default function LoginPage({ onLogin }) {
     const [searchParams] = useSearchParams();
     const location = useLocation();
-
+    const navigate = useNavigate();
     const industryFromUrl = searchParams.get("industry");
     const isLoginPage = location.pathname === "/login";
+    
 
-    const INDUSTRIES = {
-        construction: { label: "Construction", emoji: "🏗" },
-        transport: { label: "Transport", emoji: "🚛" },
-        production: { label: "Production", emoji: "🏭" }
-    };
+
 
     const selectedIndustry = industryFromUrl
-        ? INDUSTRIES[industryFromUrl]
+        ? getIndustryById(industryFromUrl)
         : null;
 
     const [email, setEmail] = useState("");
@@ -31,7 +33,12 @@ export default function LoginPage({ onLogin }) {
     const [mode, setMode] = useState(isLoginPage ? "login" : "register");
     const [region, setRegion] = useState("EU");
 
-    const callBackend = async (token, fullNameValue, companyValue) => {
+    const callBackend = async (
+        token,
+        fullNameValue,
+        companyValue,
+        isRegistration = false
+    ) => {
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/api/auth/me`, {
                 method: "POST",
@@ -58,6 +65,12 @@ export default function LoginPage({ onLogin }) {
             localStorage.setItem("token", token);
             onLogin(user);
 
+            if (isRegistration && industryFromUrl) {
+                navigate(
+                    `/setup/templates?industry=${industryFromUrl}`
+                );
+            }
+
         } catch (e) {
             console.error("CALL BACKEND ERROR:", e);
             alert("Network error");
@@ -72,7 +85,13 @@ export default function LoginPage({ onLogin }) {
             }
 
             const token = await registerWithEmail(email, password);
-            await callBackend(token, fullName, company);
+
+            await callBackend(
+                token,
+                fullName,
+                company,
+                true
+            );
 
         } catch (e) {
             console.error("REGISTER ERROR:", e);
@@ -246,7 +265,7 @@ export default function LoginPage({ onLogin }) {
                         }}>
                             {mode === "register"
                                 ? selectedIndustry
-                                    ? `Set up ExpireHeros for ${selectedIndustry.label}`
+                                    ? `Set up ExpireHeros for ${selectedIndustry.name}`
                                     : "Create your account"
                                 : "Welcome back"}
                         </h2>
@@ -266,7 +285,7 @@ export default function LoginPage({ onLogin }) {
                                 fontWeight: 700
                             }}>
                                 <span>{selectedIndustry.emoji}</span>
-                                <span>{selectedIndustry.label}</span>
+                                <span>{selectedIndustry.name}</span>
                             </div>
                         )}
 
@@ -276,7 +295,7 @@ export default function LoginPage({ onLogin }) {
                         }}>
                             {mode === "register"
                                 ? selectedIndustry
-                                    ? `Choose your region and create your ${selectedIndustry.label.toLowerCase()} workspace.`
+                                    ? `Choose your region and create your ${selectedIndustry.name.toLowerCase()} workspace.`
                                     : "Start managing important deadlines with ExpireHeros."
                                 : "Sign in to continue to your dashboard."}
                         </p>
