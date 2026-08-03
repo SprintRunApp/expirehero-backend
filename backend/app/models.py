@@ -103,6 +103,23 @@ class Item(Base):
         "WorkflowGroup",
         back_populates="items"
     )
+    external_contact_id: Mapped[str | None] = mapped_column(
+        String(36),
+        ForeignKey("external_contacts.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    external_email_enabled: Mapped[bool] = mapped_column(
+        Boolean,
+        default=False,
+        nullable=False,
+    )
+
+    external_email_template: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
     owner: Mapped["UserProfile"] = relationship(
         back_populates="items",
         foreign_keys=[owner_id]
@@ -122,6 +139,11 @@ class Item(Base):
         back_populates="item",
         cascade="all, delete-orphan",
         order_by="WorkflowCompletion.completed_at.desc()",
+    )
+
+    external_contact: Mapped["ExternalContact | None"] = relationship(
+        "ExternalContact",
+        foreign_keys=[external_contact_id],
     )
 
 class Reminder(Base):

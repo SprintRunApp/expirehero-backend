@@ -1,4 +1,4 @@
-from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -11,12 +11,20 @@ from ..models import (
     WorkflowGroup,
     Reminder,
     WorkflowCompletion,
+    ExternalContact,
 )
-from ..schemas import ItemCreate, ItemRead, ItemUpdate
-from ..services.team_access import item_access_filter, get_user_team_id
+from ..schemas import (
+    ItemCreate,
+    ItemRead,
+    ItemUpdate,
+    WorkflowCompletionRead,
+    WorkflowCompleteRequest,
+)
+from ..services.team_access import item_access_filter
 from ..services.team_limits import has_active_plan
 from calendar import monthrange
 from datetime import date, datetime
+from typing import Literal
 
 router = APIRouter()
 
@@ -61,6 +69,31 @@ def validate_workflow_group(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Workflow group does not belong to this team.",
+        )
+
+
+def validate_external_contact(
+    external_contact_id: str | None,
+    team: Team,
+    db: Session,
+) -> None:
+    if external_contact_id is None:
+        return
+
+    contact = (
+        db.query(ExternalContact)
+        .filter(
+            ExternalContact.id == external_contact_id,
+            ExternalContact.team_id == team.id,
+            ExternalContact.active.is_(True),
+        )
+        .first()
+    )
+
+    if not contact:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="External contact does not belong to this team or is inactive.",
         )
     
 def get_accessible_item_or_404(
@@ -125,16 +158,35 @@ def ensure_item_can_be_deleted(
 
 @router.get("/", response_model=list[ItemRead])
 def list_items(
+    workflow_status: Literal[
+        "active",
+        "completed",
+        "cancelled",
+    ] | None = None,
     db: Session = Depends(get_db),
-    current_user: UserProfile = Depends(get_current_user)
+    current_user: UserProfile = Depends(get_current_user),
 ):
-    items = (
+    query = (
         db.query(Item)
         .filter(item_access_filter(current_user))
-        .order_by(Item.created_at.desc())
-        .all()
     )
-    return items
+
+    if workflow_status is not None:
+        query = query.filter(
+            Item.status == workflow_status
+        )
+
+    if workflow_status == "completed":
+        query = query.order_by(
+            Item.completed_at.desc(),
+            Item.created_at.desc(),
+        )
+    else:
+        query = query.order_by(
+            Item.created_at.desc()
+        )
+
+    return query.all()
 
 
 @router.post("/", response_model=ItemRead, status_code=status.HTTP_201_CREATED)
@@ -164,6 +216,18 @@ def create_item(
         db=db,
     )
 
+    validate_external_contact(
+        external_contact_id=payload.external_contact_id,
+        team=team,
+        db=db,
+    )
+
+    if payload.external_email_enabled and not payload.external_contact_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="External email automation requires an external contact.",
+        )
+
     item = Item(
         owner_id=current_user.id,
         title=payload.title,
@@ -175,6 +239,9 @@ def create_item(
         workflow_group_id=payload.workflow_group_id,
         assigned_user_id=payload.assigned_user_id,
         notify_all=payload.notify_all,
+        external_contact_id=payload.external_contact_id,
+        external_email_enabled=payload.external_email_enabled,
+        external_email_template=payload.external_email_template,
     )
 
     db.add(item)
@@ -188,6 +255,7 @@ def create_item(
 )
 def complete_item(
     item_id: str,
+    payload: WorkflowCompleteRequest,
     db: Session = Depends(get_db),
     current_user: UserProfile = Depends(get_current_user),
     team: Team = Depends(get_current_team),
@@ -243,6 +311,7 @@ def complete_item(
         previous_due_date=previous_due_date,
         next_due_date=next_due_date,
         completed_at=completed_at,
+        notes=payload.notes,
     )
 
     db.add(completion)
@@ -253,6 +322,7 @@ def complete_item(
 
         item.status = "active"
         item.completed_at = None
+
     else:
         if reminder:
             reminder.status = "completed"
@@ -294,6 +364,18 @@ def reopen_item(
     item.status = "active"
     item.completed_at = None
 
+    reminder = (
+        db.query(Reminder)
+        .filter(
+            Reminder.item_id == item.id,
+        )
+        .order_by(Reminder.created_at.desc())
+        .first()
+    )
+
+    if reminder:
+        reminder.status = "active"
+
     db.commit()
     db.refresh(item)
 
@@ -333,7 +415,55 @@ def cancel_item(
 
     return item
 
+@router.get(
+    "/{item_id}/completions",
+    response_model=list[WorkflowCompletionRead],
+)
+def get_item_completions(
+    item_id: str,
+    db: Session = Depends(get_db),
+    current_user: UserProfile = Depends(get_current_user),
+):
+    item = get_accessible_item_or_404(
+        item_id=item_id,
+        db=db,
+        current_user=current_user,
+    )
 
+    completions = (
+        db.query(WorkflowCompletion)
+        .filter(
+            WorkflowCompletion.item_id == item.id,
+        )
+        .order_by(
+            WorkflowCompletion.completed_at.desc(),
+        )
+        .all()
+    )
+
+    return [
+        WorkflowCompletionRead(
+            id=completion.id,
+            item_id=completion.item_id,
+            reminder_id=completion.reminder_id,
+            completed_by_user_id=completion.completed_by_user_id,
+            completed_by_name=(
+                completion.completed_by.name
+                if completion.completed_by
+                else None
+            ),
+            completed_by_email=(
+                completion.completed_by.email
+                if completion.completed_by
+                else None
+            ),
+            previous_due_date=completion.previous_due_date,
+            next_due_date=completion.next_due_date,
+            completed_at=completion.completed_at,
+            notes=completion.notes,
+        )
+        for completion in completions
+    ]
 
 @router.get("/{item_id}", response_model=ItemRead)
 def get_item(
@@ -390,6 +520,29 @@ def update_item(
             workflow_group_id=updates["workflow_group_id"],
             team=team,
             db=db,
+        )
+
+    if "external_contact_id" in updates:
+        validate_external_contact(
+            external_contact_id=updates["external_contact_id"],
+            team=team,
+            db=db,
+        )
+
+    new_external_contact_id = updates.get(
+        "external_contact_id",
+        item.external_contact_id,
+    )
+
+    new_external_email_enabled = updates.get(
+        "external_email_enabled",
+        item.external_email_enabled,
+    )
+
+    if new_external_email_enabled and not new_external_contact_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="External email automation requires an external contact.",
         )
 
     new_group_id = updates.get("workflow_group_id", item.workflow_group_id)

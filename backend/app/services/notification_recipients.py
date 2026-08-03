@@ -5,7 +5,7 @@ from .protection_engine import ProtectionStage
 
 
 def add_recipient(
-    recipients: dict,
+    recipients: dict[str, UserProfile],
     user: UserProfile | None,
 ) -> None:
     if not user:
@@ -15,6 +15,25 @@ def add_recipient(
         return
 
     recipients[str(user.id)] = user
+
+
+def get_team_owner(
+    item: Item,
+    db: Session,
+) -> UserProfile | None:
+    if not item.team_id:
+        return None
+
+    team = (
+        db.query(Team)
+        .filter(Team.id == item.team_id)
+        .first()
+    )
+
+    if not team:
+        return None
+
+    return team.owner
 
 
 def get_all_team_members(
@@ -35,46 +54,12 @@ def get_all_team_members(
     add_recipient(recipients, team.owner)
 
     for membership in team.members:
-        add_recipient(recipients, membership.user)
+        add_recipient(
+            recipients,
+            membership.user,
+        )
 
     return list(recipients.values())
-
-
-def get_workflow_manager(
-    item: Item,
-    db: Session,
-) -> UserProfile | None:
-    workflow_group = getattr(item, "workflow_group", None)
-
-    if not workflow_group:
-        return None
-
-    manager_user_id = workflow_group.manager_user_id
-
-    if not manager_user_id:
-        return None
-
-    return (
-        db.query(UserProfile)
-        .filter(UserProfile.id == manager_user_id)
-        .first()
-    )
-
-
-def get_team_owner(
-    item: Item,
-    db: Session,
-) -> UserProfile | None:
-    if not item.team_id:
-        return None
-
-    team = (
-        db.query(Team)
-        .filter(Team.id == item.team_id)
-        .first()
-    )
-
-    return team.owner if team else None
 
 
 def get_recipients(
@@ -82,37 +67,44 @@ def get_recipients(
     db: Session,
     stage: ProtectionStage,
 ) -> list[UserProfile]:
-    """
-    Eskalacja odbiorców:
-
-    Zawsze:
-    - twórca workflow,
-    - osoba przypisana.
-
-    Od drugiego poziomu:
-    - manager grupy workflow.
-
-    Na dwóch ostatnich poziomach:
-    - właściciel firmy.
-
-    notify_all:
-    - wszyscy członkowie zespołu.
-    """
     recipients: dict[str, UserProfile] = {}
 
-    add_recipient(recipients, item.owner)
-    add_recipient(recipients, item.assigned_user)
+    company_owner = get_team_owner(
+        item=item,
+        db=db,
+    )
 
-    if stage.level >= 2:
-        manager = get_workflow_manager(item, db)
-        add_recipient(recipients, manager)
+    # 1. Osoba bezpośrednio odpowiedzialna
+    if item.assigned_user:
+        add_recipient(
+            recipients,
+            item.assigned_user,
+        )
+    else:
+        # Brak przypisanej osoby:
+        # owner przejmuje odpowiedzialność od początku.
+        add_recipient(
+            recipients,
+            company_owner,
+        )
 
+    # 2. Finalna eskalacja
+    # Owner = manager firmy.
     if stage.severity in {"urgent", "critical"}:
-        team_owner = get_team_owner(item, db)
-        add_recipient(recipients, team_owner)
+        add_recipient(
+            recipients,
+            company_owner,
+        )
 
+    # 3. Jawne notify_all nadal respektujemy
     if item.notify_all and item.team_id:
-        for user in get_all_team_members(item.team_id, db):
-            add_recipient(recipients, user)
+        for user in get_all_team_members(
+            team_id=item.team_id,
+            db=db,
+        ):
+            add_recipient(
+                recipients,
+                user,
+            )
 
     return list(recipients.values())

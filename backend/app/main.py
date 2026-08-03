@@ -13,6 +13,7 @@ from app.routes import (
     external_contacts,
 )
 from app.routes import settings as settings_router
+from .routes import industry_templates
 from app.api import reminder_jobs
 
 # from .routes import webhook
@@ -39,6 +40,12 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+)
+
+app.include_router(
+    industry_templates.router,
+    prefix="/industry-templates",
+    tags=["industry-templates"],
 )
 
 

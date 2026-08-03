@@ -6,6 +6,9 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr, Field
 
 from typing import Optional
+from datetime import datetime
+from typing import Literal
+
 
 class UserMe(BaseModel):
     id: UUID
@@ -30,6 +33,9 @@ class ItemCreate(BaseModel):
     assigned_user_id: Optional[str] = None
     notify_all: bool = False
 
+    external_contact_id: str | None = None
+    external_email_enabled: bool = False
+    external_email_template: str | None = None
     
 
 
@@ -46,33 +52,49 @@ class ItemUpdate(BaseModel):
     assigned_user_id: Optional[str] = None
     notify_all: Optional[bool] = None
 
+    external_contact_id: str | None = None
+    external_email_enabled: bool | None = None
+    external_email_template: str | None = None
+
 
 class ItemRead(BaseModel):
     id: str
     owner_id: str
+
     title: str
     category: str
     notes: str | None = None
     attachment_url: str | None = None
+
     visibility: str
     team_id: int | None = None
     workflow_group_id: str | None = None
+
     assigned_user_id: str | None = None
     notify_all: bool
+
     archived: bool
 
-    status: str
-    completed_at: datetime | None = None
+    status: Literal[
+        "active",
+        "completed",
+        "cancelled",
+    ]
 
+    completed_at: datetime | None = None
     created_at: datetime
+
+    due_date: date | None = None
+    days_remaining: int | None = None
+    protection_status: str | None = None
+
+    external_contact_id: str | None = None
+    external_email_enabled: bool
+    external_email_template: str | None = None
 
     model_config = {
         "from_attributes": True
     }
-
-
-
-   
 
    
 
@@ -255,3 +277,30 @@ class ExternalContactRead(BaseModel):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+class WorkflowCompletionRead(BaseModel):
+    id: str
+    item_id: str
+    reminder_id: str | None = None
+
+    completed_by_user_id: str
+    completed_by_name: str | None = None
+    completed_by_email: str | None = None
+
+    previous_due_date: date | None = None
+    next_due_date: date | None = None
+
+    completed_at: datetime
+    notes: str | None = None
+
+class WorkflowCompleteRequest(BaseModel):
+    notes: str | None = None
+
+class IndustryTemplateWorkflowSelection(BaseModel):
+    group_name: str
+    workflow_title: str
+    due_date: date
+
+
+class IndustryTemplateApply(BaseModel):
+    workflows: list[IndustryTemplateWorkflowSelection]
