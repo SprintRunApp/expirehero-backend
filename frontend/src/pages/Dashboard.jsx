@@ -6,20 +6,7 @@ import SettingsPanel from "../components/SettingsPanel";
 
 /* ---------------- HELPERS ---------------- */
 
-function getStatus(dueDate) {
-    const now = new Date();
-    const due = new Date(dueDate);
 
-    now.setHours(0, 0, 0, 0);
-    due.setHours(0, 0, 0, 0);
-
-    const diff = Math.ceil((due - now) / (1000 * 60 * 60 * 24));
-
-    if (diff < 0) return "expired";
-    if (diff <= 7) return "urgent";
-    if (diff <= 30) return "soon";
-    return "active";
-}
 
 function formatDate(date) {
     return new Date(date).toLocaleDateString();
@@ -35,6 +22,12 @@ export default function Dashboard({ user }) {
 
     const [notificationModal, setNotificationModal] = useState(null);
     const [notificationHistory, setNotificationHistory] = useState([]);
+
+    const [workflows, setWorkflows] = useState([]);
+    const [workflowStatus, setWorkflowStatus] = useState("active");
+
+    const [completionModal, setCompletionModal] = useState(null);
+    const [completionHistory, setCompletionHistory] = useState([]);
 
     const load = async () => {
         const res = await api.get("/reminders/");
@@ -69,6 +62,135 @@ export default function Dashboard({ user }) {
         loadTeam();
     }, []);
 
+    const loadWorkflows = async (status = workflowStatus) => {
+        try {
+            const res = await api.get(
+                `/items/?workflow_status=${status}`
+            );
+
+            setWorkflows(res.data);
+
+        } catch (e) {
+            console.error(
+                "LOAD WORKFLOWS ERROR:",
+                e
+            );
+
+            alert("Cannot load workflows");
+        }
+    };
+
+    useEffect(() => {
+        if (view === "workflows") {
+            loadWorkflows(workflowStatus);
+        }
+    }, [view, workflowStatus]);
+
+    const openCompletionHistory = async (workflow) => {
+        try {
+            const res = await api.get(
+                `/items/${workflow.id}/completions`
+            );
+
+            setCompletionHistory(res.data);
+            setCompletionModal(workflow);
+
+        } catch (e) {
+            console.error(
+                "COMPLETION HISTORY ERROR:",
+                e
+            );
+
+            alert(
+                "Cannot load completion history"
+            );
+        }
+    };
+
+    const completeItem = async (workflow) => {
+        const notes = prompt(
+            "Optional completion note:",
+            ""
+        );
+
+        try {
+            await api.post(
+                `/items/${workflow.id}/complete`,
+                {
+                    notes: notes || null,
+                }
+            );
+
+            await loadWorkflows(workflowStatus);
+            await load();
+
+        } catch (e) {
+            console.error(
+                "COMPLETE WORKFLOW ERROR:",
+                e
+            );
+
+            alert(
+                e.response?.data?.detail ||
+                "Could not complete workflow."
+            );
+        }
+    };
+
+
+    const cancelItem = async (workflow) => {
+        if (
+            !confirm(
+                `Cancel "${workflow.title}"?`
+            )
+        ) {
+            return;
+        }
+
+        try {
+            await api.post(
+                `/items/${workflow.id}/cancel`
+            );
+
+            await loadWorkflows(workflowStatus);
+            await load();
+
+        } catch (e) {
+            console.error(
+                "CANCEL WORKFLOW ERROR:",
+                e
+            );
+
+            alert(
+                e.response?.data?.detail ||
+                "Could not cancel workflow."
+            );
+        }
+    };
+
+
+    const reopenItem = async (workflow) => {
+        try {
+            await api.post(
+                `/items/${workflow.id}/reopen`
+            );
+
+            await loadWorkflows(workflowStatus);
+            await load();
+
+        } catch (e) {
+            console.error(
+                "REOPEN WORKFLOW ERROR:",
+                e
+            );
+
+            alert(
+                e.response?.data?.detail ||
+                "Could not reopen workflow."
+            );
+        }
+    };
+
     const remove = async (id) => {
         if (!confirm("Delete this reminder?")) return;
         await api.delete(`/reminders/${id}`);
@@ -86,13 +208,74 @@ export default function Dashboard({ user }) {
         load();
     };
 
-    const expiringSoon = items.filter(r => {
-        const status = getStatus(r.due_date);
-        return status === "soon" || status === "urgent";
+    const completeWorkflow = async (reminder) => {
+        try {
+            const notes = prompt(
+                "Optional completion note:",
+                ""
+            );
+
+            await api.post(
+                `/items/${reminder.item_id}/complete`,
+                {
+                    notes: notes || null,
+                }
+            );
+
+            await load();
+
+        } catch (e) {
+            console.error(
+                "COMPLETE WORKFLOW ERROR:",
+                e
+            );
+
+            alert(
+                e.response?.data?.detail ||
+                "Could not complete workflow."
+            );
+        }
+    };
+
+
+    const cancelWorkflow = async (reminder) => {
+        if (
+            !confirm(
+                `Cancel "${reminder.item_title}"?`
+            )
+        ) {
+            return;
+        }
+
+        try {
+            await api.post(
+                `/items/${reminder.item_id}/cancel`
+            );
+
+            await load();
+
+        } catch (e) {
+            console.error(
+                "CANCEL WORKFLOW ERROR:",
+                e
+            );
+
+            alert(
+                e.response?.data?.detail ||
+                "Could not cancel workflow."
+            );
+        }
+    };
+
+    const expiringSoon = items.filter((r) => {
+        return (
+            r.ui_status === "soon" ||
+            r.ui_status === "urgent"
+        );
     });
 
-    const expired = items.filter(r => {
-        return getStatus(r.due_date) === "expired";
+    const expired = items.filter((r) => {
+        return r.ui_status === "expired";
     });
 
     return (
@@ -136,6 +319,11 @@ export default function Dashboard({ user }) {
 
                     <NavItem label="Dashboard" active={view === "dashboard"} onClick={() => setView("dashboard")} />
                     <NavItem label="Reminders" active={view === "reminders"} onClick={() => setView("reminders")} />
+                    <NavItem
+                        label="Workflows"
+                        active={view === "workflows"}
+                        onClick={() => setView("workflows")}
+                    />
                     <NavItem label="Team" active={view === "team"} onClick={() => setView("team")} />
                     <NavItem label="Settings" active={view === "settings"} onClick={() => setView("settings")} />
                 </div>
@@ -250,9 +438,7 @@ export default function Dashboard({ user }) {
                                 gap: 16
                             }}>
                                 {expiringSoon.map(r => {
-                                    const days = Math.ceil(
-                                        (new Date(r.due_date) - new Date()) / (1000 * 60 * 60 * 24)
-                                    );
+                                    
 
                                     return (
                                         <div
@@ -306,7 +492,7 @@ export default function Dashboard({ user }) {
                                                 fontWeight: 600,
                                                 color: "#3b82f6"
                                             }}>
-                                                in {days} days
+                                                in {r.days_left} days
                                             </div>
                                         </div>
                                     );
@@ -375,11 +561,63 @@ export default function Dashboard({ user }) {
                         </>
                     )}
 
+                    {view === "workflows" && (
+                        <>
+                            <div
+                                style={{
+                                    display: "flex",
+                                    justifyContent: "space-between",
+                                    alignItems: "center",
+                                    marginBottom: 24,
+                                }}
+                            >
+                                <div>
+                                    <h2
+                                        style={{
+                                            margin: 0,
+                                            color: "#0f172a",
+                                        }}
+                                    >
+                                        Workflows
+                                    </h2>
+
+                                    <div
+                                        style={{
+                                            marginTop: 6,
+                                            color: "#64748b",
+                                            fontSize: 14,
+                                        }}
+                                    >
+                                        Manage the lifecycle of your
+                                        company obligations.
+                                    </div>
+                                </div>
+                            </div>
+
+                            <WorkflowTabs
+                                status={workflowStatus}
+                                onChange={setWorkflowStatus}
+                            />
+
+                            <WorkflowsTable
+                                workflows={workflows}
+                                completeItem={completeItem}
+                                cancelItem={cancelItem}
+                                reopenItem={reopenItem}
+                                openCompletionHistory={
+                                    openCompletionHistory
+                                }
+                            />
+                        </>
+                    )}
+
                     {view === "reminders" && (
                         <RemindersTable
                             items={items}
                             remove={remove}
                             edit={edit}
+                            completeWorkflow={completeWorkflow}
+                            cancelWorkflow={cancelWorkflow}
                             openNotificationHistory={openNotificationHistory}
                         />
                     )}
@@ -465,6 +703,137 @@ export default function Dashboard({ user }) {
                                                 marginTop: 8
                                             }}>
                                                 {n.error}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+
+                    {completionModal && (
+                        <div
+                            style={{
+                                position: "fixed",
+                                inset: 0,
+                                background: "rgba(0,0,0,0.45)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                zIndex: 9999,
+                            }}
+                        >
+                            <div
+                                style={{
+                                    width: 700,
+                                    maxHeight: "80vh",
+                                    overflowY: "auto",
+                                    background: "white",
+                                    borderRadius: 20,
+                                    padding: 24,
+                                    boxShadow: "0 30px 80px rgba(0,0,0,0.3)",
+                                }}
+                            >
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        justifyContent: "space-between",
+                                        alignItems: "center",
+                                        marginBottom: 20,
+                                    }}
+                                >
+                                    <div>
+                                        <h2
+                                            style={{
+                                                margin: 0,
+                                            }}
+                                        >
+                                            Completion History
+                                        </h2>
+
+                                        <div
+                                            style={{
+                                                marginTop: 4,
+                                                color: "#64748b",
+                                            }}
+                                        >
+                                            {completionModal.title}
+                                        </div>
+                                    </div>
+
+                                    <button
+                                        onClick={() =>
+                                            setCompletionModal(null)
+                                        }
+                                    >
+                                        ✖
+                                    </button>
+                                </div>
+
+                                {completionHistory.length === 0 && (
+                                    <div
+                                        style={{
+                                            color: "#64748b",
+                                        }}
+                                    >
+                                        No completion history yet.
+                                    </div>
+                                )}
+
+                                {completionHistory.map((entry) => (
+                                    <div
+                                        key={entry.id}
+                                        style={{
+                                            padding: 16,
+                                            border: "1px solid #e5e7eb",
+                                            borderRadius: 12,
+                                            marginBottom: 12,
+                                        }}
+                                    >
+                                        <div>
+                                            <strong>Completed by:</strong>{" "}
+                                            {entry.completed_by_name ||
+                                                entry.completed_by_email ||
+                                                "Unknown"}
+                                        </div>
+
+                                        <div>
+                                            <strong>Completed:</strong>{" "}
+                                            {new Date(
+                                                entry.completed_at
+                                            ).toLocaleString()}
+                                        </div>
+
+                                        <div>
+                                            <strong>Previous due date:</strong>{" "}
+                                            {entry.previous_due_date
+                                                ? formatDate(
+                                                    entry.previous_due_date
+                                                )
+                                                : "—"}
+                                        </div>
+
+                                        <div>
+                                            <strong>Next due date:</strong>{" "}
+                                            {entry.next_due_date
+                                                ? formatDate(
+                                                    entry.next_due_date
+                                                )
+                                                : "—"}
+                                        </div>
+
+                                        {entry.notes && (
+                                            <div
+                                                style={{
+                                                    marginTop: 10,
+                                                    padding: 10,
+                                                    background: "#f8fafc",
+                                                    borderRadius: 8,
+                                                }}
+                                            >
+                                                <strong>Notes:</strong>{" "}
+                                                {entry.notes}
                                             </div>
                                         )}
                                     </div>
@@ -673,8 +1042,287 @@ function ReminderCard({ title, subtitle, days, color }) {
     );
 }
 
+function WorkflowTabs({
+    status,
+    onChange,
+}) {
+    const tabs = [
+        {
+            id: "active",
+            label: "Active",
+        },
+        {
+            id: "completed",
+            label: "Completed",
+        },
+        {
+            id: "cancelled",
+            label: "Cancelled",
+        },
+    ];
 
-function RemindersTable({ items, remove, edit, openNotificationHistory }) {
+    return (
+        <div
+            style={{
+                display: "flex",
+                gap: 8,
+                marginBottom: 20,
+            }}
+        >
+            {tabs.map((tab) => {
+                const active =
+                    status === tab.id;
+
+                return (
+                    <button
+                        key={tab.id}
+                        onClick={() =>
+                            onChange(tab.id)
+                        }
+                        style={{
+                            border: active
+                                ? "1px solid #3b82f6"
+                                : "1px solid #e2e8f0",
+                            background: active
+                                ? "#eff6ff"
+                                : "white",
+                            color: active
+                                ? "#2563eb"
+                                : "#64748b",
+                            padding: "10px 18px",
+                            borderRadius: 999,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                        }}
+                    >
+                        {tab.label}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
+function WorkflowsTable({
+    workflows,
+    completeItem,
+    cancelItem,
+    reopenItem,
+    openCompletionHistory,
+}) {
+    if (workflows.length === 0) {
+        return (
+            <div
+                style={{
+                    background: "white",
+                    borderRadius: 16,
+                    padding: 30,
+                    color: "#64748b",
+                    textAlign: "center",
+                    border: "1px solid #e5e7eb",
+                }}
+            >
+                No workflows in this section.
+            </div>
+        );
+    }
+
+    return (
+        <div
+            style={{
+                background: "white",
+                borderRadius: 16,
+                border: "1px solid #e5e7eb",
+                overflow: "hidden",
+            }}
+        >
+            <table
+                style={{
+                    width: "100%",
+                    borderCollapse: "collapse",
+                }}
+            >
+                <thead
+                    style={{
+                        background: "#f9fafb",
+                        fontSize: 12,
+                        color: "#6b7280",
+                        textTransform: "uppercase",
+                    }}
+                >
+                    <tr>
+                        <th style={thStyle}>
+                            Workflow
+                        </th>
+
+                        <th style={thStyle}>
+                            Category
+                        </th>
+
+                        <th style={thStyle}>
+                            Status
+                        </th>
+
+                        <th style={thStyle}>
+                            Completed
+                        </th>
+
+                        <th style={thStyle}>
+                            Actions
+                        </th>
+                    </tr>
+                </thead>
+
+                <tbody>
+                    {workflows.map(
+                        (workflow) => (
+                            <tr key={workflow.id}>
+                                <td style={tdStyle}>
+                                    <strong>
+                                        {
+                                            workflow.title
+                                        }
+                                    </strong>
+                                </td>
+
+                                <td style={tdStyle}>
+                                    {
+                                        workflow.category
+                                    }
+                                </td>
+
+                                <td style={tdStyle}>
+                                    <WorkflowStatusBadge
+                                        status={
+                                            workflow.status
+                                        }
+                                    />
+                                </td>
+
+                                <td style={tdStyle}>
+                                    {workflow.completed_at
+                                        ? new Date(
+                                            workflow.completed_at
+                                        ).toLocaleString()
+                                        : "—"}
+                                </td>
+
+                                <td style={tdStyle}>
+                                    <div
+                                        style={{
+                                            display:
+                                                "flex",
+                                            gap: 6,
+                                            flexWrap:
+                                                "wrap",
+                                        }}
+                                    >
+                                        {workflow.status ===
+                                            "active" && (
+                                                <>
+                                                    <button
+                                                        onClick={() =>
+                                                            completeItem(
+                                                                workflow
+                                                            )
+                                                        }
+                                                        title="Complete"
+                                                    >
+                                                        ✅
+                                                    </button>
+
+                                                    <button
+                                                        onClick={() =>
+                                                            cancelItem(
+                                                                workflow
+                                                            )
+                                                        }
+                                                        title="Cancel"
+                                                    >
+                                                        ⛔
+                                                    </button>
+                                                </>
+                                            )}
+
+                                        {(workflow.status ===
+                                            "completed" ||
+                                            workflow.status ===
+                                            "cancelled") && (
+                                                <button
+                                                    onClick={() =>
+                                                        reopenItem(
+                                                            workflow
+                                                        )
+                                                    }
+                                                    title="Reopen"
+                                                >
+                                                    ↻
+                                                </button>
+                                            )}
+
+                                        <button
+                                            onClick={() =>
+                                                openCompletionHistory(
+                                                    workflow
+                                                )
+                                            }
+                                            title="Completion history"
+                                        >
+                                            📜
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        )
+                    )}
+                </tbody>
+            </table>
+        </div>
+    );
+}
+
+function WorkflowStatusBadge({ status }) {
+    let background = "#dcfce7";
+    let color = "#166534";
+    let text = "Active";
+
+    if (status === "completed") {
+        background = "#dbeafe";
+        color = "#1d4ed8";
+        text = "Completed";
+    }
+
+    if (status === "cancelled") {
+        background = "#f1f5f9";
+        color = "#64748b";
+        text = "Cancelled";
+    }
+
+    return (
+        <span
+            style={{
+                background,
+                color,
+                padding: "6px 10px",
+                borderRadius: 999,
+                fontSize: 12,
+                fontWeight: 700,
+            }}
+        >
+            {text}
+        </span>
+    );
+}
+
+
+function RemindersTable({
+    items,
+    remove,
+    edit,
+    completeWorkflow,
+    cancelWorkflow,
+    openNotificationHistory
+}) {
     return (
         <>
             <h2 style={{ marginBottom: 20 }}>All Reminders</h2>
@@ -704,15 +1352,13 @@ function RemindersTable({ items, remove, edit, openNotificationHistory }) {
 
                     <tbody>
                         {items.map((reminder) => {
-                            const status = getStatus(reminder.due_date);
-
                             return (
                                 <tr key={reminder.id}>
                                     <td style={tdStyle}>{reminder.item_title}</td>
                                     <td style={tdStyle}>General</td>
                                     <td style={tdStyle}>{formatDate(reminder.due_date)}</td>
                                     <td style={tdStyle}>
-                                        <StatusBadge status={status} />
+                                        <StatusBadge status={reminder.ui_status} />
                                     </td>
                                     <td style={tdStyle}>
                                         <EmailStatus
@@ -721,8 +1367,41 @@ function RemindersTable({ items, remove, edit, openNotificationHistory }) {
                                         />
                                     </td>
                                     <td style={tdStyle}>
-                                        <button onClick={() => remove(reminder.id)}>❌</button>
-                                        <button onClick={() => edit(reminder)}>✏️</button>
+                                        <button
+                                            onClick={() =>
+                                                completeWorkflow(reminder)
+                                            }
+                                            title="Complete workflow"
+                                        >
+                                            ✅
+                                        </button>
+
+                                        <button
+                                            onClick={() =>
+                                                cancelWorkflow(reminder)
+                                            }
+                                            title="Cancel workflow"
+                                        >
+                                            ⛔
+                                        </button>
+
+                                        <button
+                                            onClick={() =>
+                                                edit(reminder)
+                                            }
+                                            title="Edit due date"
+                                        >
+                                            ✏️
+                                        </button>
+
+                                        <button
+                                            onClick={() =>
+                                                remove(reminder.id)
+                                            }
+                                            title="Delete reminder"
+                                        >
+                                            ❌
+                                        </button>
                                     </td>
                                 </tr>
                             );
@@ -733,6 +1412,8 @@ function RemindersTable({ items, remove, edit, openNotificationHistory }) {
         </>
     );
 }
+
+
 
 /* ---------------- STYLES ---------------- */
 
