@@ -11,7 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import AcceptInvitePage from "./pages/AcceptInvitePage";
 import LandingPage from "./pages/LandingPage";
 import IndustryLandingPage from "./pages/IndustryLandingPage";
-import IndustryTemplateSetup from "./pages/IndustryTemplateSetup";
+import IndustryTemplateSetup from "./pages/industry/TemplateSetup";
 
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./lib/firebase";
