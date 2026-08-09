@@ -9,6 +9,8 @@ router = APIRouter()
 
 class CheckoutRequest(BaseModel):
     plan: str
+    success_path: str | None = None
+    cancel_path: str | None = None
 
 
 @router.post("/create-checkout-session")
@@ -32,7 +34,9 @@ def create_session(
 
     url = create_checkout_session(
         team_id=team.id,
-        plan=payload.plan
+        plan=payload.plan,
+        success_path=payload.success_path,
+        cancel_path=payload.cancel_path,
     )
 
     return {"checkout_url": url}

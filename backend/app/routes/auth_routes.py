@@ -15,6 +15,7 @@ class AuthPayload(BaseModel):
     company_name: str | None = None
     industry: str | None = None
     region: str | None = None
+    country: str | None = None
 
 
 @router.get("/me", response_model=UserMe)
@@ -44,7 +45,8 @@ def me_post(
             name=payload.company_name,
             owner_id=current_user.id,
             industry=payload.industry,
-            region=payload.region
+            region=payload.region,
+            country=payload.country,
         )
 
         db.add(team)

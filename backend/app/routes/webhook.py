@@ -1,3 +1,5 @@
+from importlib.metadata import metadata
+
 import stripe
 
 from fastapi import APIRouter, Request, HTTPException
@@ -29,8 +31,13 @@ async def stripe_webhook(request: Request):
         if event["type"] == "checkout.session.completed":
             session = event["data"]["object"]
 
-            team_id = session["metadata"].get("team_id")
-            plan = session["metadata"].get("plan")
+            metadata = session.get("metadata") or {}
+
+            team_id = metadata.get("team_id")
+            plan = metadata.get("plan")
+
+            if not team_id or not plan:
+                return {"status": "ignored"}
 
             customer_id = session.get("customer")
             subscription_id = session.get("subscription")

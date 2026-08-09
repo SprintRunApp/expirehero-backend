@@ -273,6 +273,8 @@ class Team(Base):
     industry = Column(String(64), nullable=True)
     region = Column(String(16), nullable=True)
 
+    country = Column(String(16), nullable=True)
+
     stripe_customer_id = Column(String, nullable=True)
     stripe_subscription_id = Column(String, nullable=True)
 
