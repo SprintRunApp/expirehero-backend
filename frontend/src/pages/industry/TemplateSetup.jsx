@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
-import api from "../lib/api";
-import { getIndustryById } from "../data/industries";
+import api from "../../lib/api";
+import { getIndustryById } from "../../data/industries";
 
 
 export default function IndustryTemplateSetup() {
