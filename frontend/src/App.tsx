@@ -12,7 +12,7 @@ import AcceptInvitePage from "./pages/AcceptInvitePage";
 import LandingPage from "./pages/LandingPage";
 import IndustryLandingPage from "./pages/IndustryLandingPage";
 import IndustryTemplateSetup from "./pages/industry/TemplateSetup";
-
+import PlanSetup from "./pages/onboarding/PlanSetup";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./lib/firebase";
 
@@ -93,6 +93,18 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+
+        <Route
+          path="/setup/plan"
+          element={
+            user
+              ? <PlanSetup />
+              : <Navigate
+                to="/login"
+                replace
+              />
+          }
+        />
 
         <Route
           path="/invite/:token"

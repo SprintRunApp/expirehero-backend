@@ -31,7 +31,7 @@ export default function LoginPage({ onLogin }) {
     const [company, setCompany] = useState("");
     const [fullName, setFullName] = useState("");
     const [mode, setMode] = useState(isLoginPage ? "login" : "register");
-    const [region, setRegion] = useState("EU");
+    const [country, setCountry] = useState("NL");
 
     const callBackend = async (
         token,
@@ -50,7 +50,7 @@ export default function LoginPage({ onLogin }) {
                     full_name: fullNameValue,
                     company_name: companyValue,
                     industry: industryFromUrl,
-                    region: region
+                    country: country
                 })
             });
 
@@ -62,12 +62,13 @@ export default function LoginPage({ onLogin }) {
             }
 
             const user = await res.json();
+
             localStorage.setItem("token", token);
             onLogin(user);
 
             if (isRegistration && industryFromUrl) {
                 navigate(
-                    `/setup/templates?industry=${industryFromUrl}`
+                    `/setup/plan?industry=${industryFromUrl}`
                 );
             }
 
@@ -306,8 +307,10 @@ export default function LoginPage({ onLogin }) {
                                 <Input label="Full name" value={fullName} onChange={setFullName} />
                                 <div style={{ marginBottom: 16 }}>
                                     <select
-                                        value={region}
-                                        onChange={(e) => setRegion(e.target.value)}
+                                        value={country}
+                                        onChange={(e) =>
+                                            setCountry(e.target.value)
+                                        }
                                         style={{
                                             width: "100%",
                                             boxSizing: "border-box",
@@ -320,10 +323,18 @@ export default function LoginPage({ onLogin }) {
                                             color: "#0f172a"
                                         }}
                                     >
-                                        <option value="EU">Europe</option>
-                                        <option value="US">United States</option>
+                                        <option value="NL">Netherlands</option>
+                                        <option value="BE">Belgium</option>
+                                        <option value="DE">Germany</option>
+                                        <option value="PL">Poland</option>
+                                        <option value="FR">France</option>
+                                        <option value="ES">Spain</option>
+                                        <option value="IT">Italy</option>
                                         <option value="UK">United Kingdom</option>
+                                        <option value="US">United States</option>
+                                        <option value="CA">Canada</option>
                                         <option value="AU">Australia</option>
+                                        <option value="NZ">New Zealand</option>
                                     </select>
                                 </div>
                             </>

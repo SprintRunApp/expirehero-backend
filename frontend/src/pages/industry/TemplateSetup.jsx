@@ -32,7 +32,47 @@ export default function IndustryTemplateSetup() {
     }, [industry]);
 
 
+    const waitForActivePlan = async () => {
+        for (let attempt = 0; attempt < 10; attempt++) {
+            try {
+                const res = await api.get("/teams/me");
+
+                const plan = res.data?.plan;
+
+                if (
+                    plan === "starter" ||
+                    plan === "pro" ||
+                    plan === "business"
+                ) {
+                    return true;
+                }
+            } catch (e) {
+                console.error(
+                    "PLAN CHECK ERROR:",
+                    e
+                );
+            }
+
+            await new Promise((resolve) =>
+                setTimeout(resolve, 1000)
+            );
+        }
+
+        return false;
+    };
+
     const loadTemplate = async () => {
+
+        const active = await waitForActivePlan();
+
+        if (!active) {
+            setError(
+                "Your payment is still being confirmed. Please try again in a moment."
+            );
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -196,11 +236,13 @@ export default function IndustryTemplateSetup() {
 
                     <button
                         style={primaryButton}
-                        onClick={() =>
-                            navigate("/dashboard")
-                        }
+                        onClick={() => {
+                            setError(null);
+                            setLoading(true);
+                            loadTemplate();
+                        }}
                     >
-                        Go to dashboard
+                        Try again
                     </button>
                 </div>
             </div>
@@ -405,9 +447,7 @@ export default function IndustryTemplateSetup() {
 
                 <div style={footer}>
                     <button
-                        onClick={() =>
-                            navigate("/dashboard")
-                        }
+                        onClick={() => navigate("/")}
                         style={secondaryButton}
                         disabled={saving}
                     >
