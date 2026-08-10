@@ -14,3 +14,4 @@ redis
 sendgrid
 email-validator
 resend
+stripe==15.4.0
