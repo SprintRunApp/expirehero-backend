@@ -11,6 +11,7 @@ from app.routes import (
     teams,
     workflow_groups,
     external_contacts,
+    payments,
 )
 from app.routes import settings as settings_router
 from .routes import industry_templates
@@ -49,6 +50,8 @@ app.include_router(
 )
 
 
+
+
 @app.get("/api/health")
 def health():
     return {
@@ -62,6 +65,11 @@ app.include_router(auth_routes.router, prefix="/api/auth", tags=["auth"])
 app.include_router(items.router, prefix="/api/items", tags=["items"])
 app.include_router(reminders.router, prefix="/api/reminders", tags=["reminders"])
 app.include_router(teams.router, prefix="/api/teams", tags=["Teams"])
+app.include_router(
+    payments.router,
+    prefix="/api/billing",
+    tags=["Billing"],
+)
 app.include_router(
     workflow_groups.router,
     prefix="/api/workflow-groups",
