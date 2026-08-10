@@ -1,8 +1,11 @@
+import traceback
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from ..deps import get_current_user
 from ..services.stripe_service import create_checkout_session
+
 
 router = APIRouter()
 
@@ -32,11 +35,31 @@ def create_session(
             detail="Invalid plan."
         )
 
-    url = create_checkout_session(
-        team_id=team.id,
-        plan=payload.plan,
-        success_path=payload.success_path,
-        cancel_path=payload.cancel_path,
-    )
+    try:
+        print("💳 STRIPE CHECKOUT START")
+        print("TEAM ID:", team.id)
+        print("PLAN:", payload.plan)
+        print("SUCCESS PATH:", payload.success_path)
+        print("CANCEL PATH:", payload.cancel_path)
 
-    return {"checkout_url": url}
+        url = create_checkout_session(
+            team_id=team.id,
+            plan=payload.plan,
+            success_path=payload.success_path,
+            cancel_path=payload.cancel_path,
+        )
+
+        print("✅ STRIPE CHECKOUT CREATED")
+
+        return {
+            "checkout_url": url
+        }
+
+    except Exception as e:
+        print("❌ STRIPE CHECKOUT ERROR:", str(e))
+        print(traceback.format_exc())
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Stripe checkout failed: {str(e)}"
+        )
