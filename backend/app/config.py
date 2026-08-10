@@ -18,11 +18,11 @@ class Settings(BaseSettings):
 
     stripe_secret_key: str = "demo"
     stripe_webhook_secret: str = "demo"
-    frontend_url: str = "http://localhost:5173"
+    frontend_url: str = "https://www.expireheros.app"
 
-    stripe_starter_price_id: str = "demo"
-    stripe_pro_price_id: str = "demo"
-    stripe_business_price_id: str = "demo"
+    stripe_starter_price_id: str = "prod_UqlkwnXJ68XcxP"
+    stripe_pro_price_id: str = "prod_UqlnxIdp9nKVBP"
+    stripe_business_price_id: str = "prod_UqumnSgDAuLNVk"
 
     # ✅ STAŁE (nie pola Pydantic)
     FREE_REMINDER_LIMIT: ClassVar[int] = 9999
